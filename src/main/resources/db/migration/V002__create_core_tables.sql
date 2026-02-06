@@ -1,7 +1,7 @@
 -- =========================
 -- Tabela: usuario
 -- =========================
-CREATE TABLE IF NOT EXISTS core.usuario (
+CREATE TABLE IF NOT EXISTS core.USUARIO (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     senha VARCHAR(255) NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS core.usuario (
 -- =========================
 -- Tabela: lista_mensal
 -- =========================
-CREATE TABLE IF NOT EXISTS core.lista_mensal (
+CREATE TABLE IF NOT EXISTS core.LISTA_MENSAL (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     usuario_id UUID NOT NULL,
     mes INTEGER NOT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS core.lista_mensal (
 -- =========================
 -- Tabela: item_lista
 -- =========================
-CREATE TABLE IF NOT EXISTS core.item_lista (
+CREATE TABLE IF NOT EXISTS core.ITEM_LISTA (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     lista_id UUID NOT NULL,
     nome_produto VARCHAR(255) NOT NULL,
