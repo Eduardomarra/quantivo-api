@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import com.example.quantivo.entity.ItemLista;
 import com.example.quantivo.entity.ListaMensal;
 import com.example.quantivo.entity.Usuario;
+import com.example.quantivo.exception.BusinessException;
+import com.example.quantivo.exception.ResourceNotFoundException;
 import com.example.quantivo.repository.ItemListaReporitory;
 import com.example.quantivo.repository.ListaMensalRepository;
 import com.example.quantivo.repository.UsuarioRepository;
@@ -32,7 +34,7 @@ public class ListaMensalService {
 	@Transactional
 	public ListaMensalTO criarListaMensal(UUID usuarioId) {
 		Usuario usuario = usuarioRepository.findById(usuarioId)
-				.orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));
+				.orElseThrow(() -> new ResourceNotFoundException("Usuario nao encontrado"));
 
 		Optional<ListaMensal> listaMensal = listaMensalRepository.findByUsuario_IdAndMesAndAno(usuarioId, LocalDateTime.now().getMonthValue(), LocalDateTime.now().getYear());
 
@@ -51,11 +53,11 @@ public class ListaMensalService {
 
 	public ListaMensalTO getPorId(UUID id) {
 		return new ListaMensalTO(listaMensalRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Lista nao encontrada")));
+				.orElseThrow(() -> new ResourceNotFoundException("Lista nao encontrada")));
 	}
 
 	public ListaMensalTO getPorUsuarioIdMesAno(UUID usuarioId, Integer mes, Integer ano) {
-		ListaMensal lista = listaMensalRepository.findByUsuario_IdAndMesAndAno(usuarioId, mes, ano).orElseThrow(() -> new RuntimeException("Lista não encontrada."));
+		ListaMensal lista = listaMensalRepository.findByUsuario_IdAndMesAndAno(usuarioId, mes, ano).orElseThrow(() -> new ResourceNotFoundException("Lista não encontrada."));
 		return new ListaMensalTO(lista);
 	}
 
@@ -69,14 +71,14 @@ public class ListaMensalService {
 	}
 
 	public ListaMensalTO adicionarItem(UUID listaId, AdicionarItemTO to) {
-		ListaMensal lista = listaMensalRepository.findById(listaId).orElseThrow(() -> new RuntimeException("Lista não encontrada."));
+		ListaMensal lista = listaMensalRepository.findById(listaId).orElseThrow(() -> new ResourceNotFoundException("Lista não encontrada."));
 
 		if(to.getQuantidade() <= 0) {
-			throw new RuntimeException("Quantidade deve ser maior que 0.");
+			throw new BusinessException("Quantidade deve ser maior que 0.");
 		}
 
 		if(to.getValorUnitario().floatValue() <= 0) {
-			throw new RuntimeException("Valor unitário deve ser maior que 0.");
+			throw new BusinessException("Valor unitário deve ser maior que 0.");
 		}
 
 		ItemLista itemLista = new ItemLista();
@@ -93,7 +95,7 @@ public class ListaMensalService {
 	}
 
 	public ListaMensalTO alterarItem(UUID itemId, AlterarItemTO to) {
-		ItemLista item = itemListaReporitory.findById(itemId).orElseThrow(() -> new RuntimeException("Item nao encontrado"));
+		ItemLista item = itemListaReporitory.findById(itemId).orElseThrow(() -> new ResourceNotFoundException("Item nao encontrado"));
 
 		item.setNomeProduto(to.getNomeProduto());
 		item.setQuantidade(to.getQuantidade());
@@ -111,7 +113,7 @@ public class ListaMensalService {
 
 
 	public ResumoListaTO getResumoLista(UUID listaId) {
-		ListaMensal lista = listaMensalRepository.findById(listaId).orElseThrow(() -> new RuntimeException("Lista nao encontrada"));
+		ListaMensal lista = listaMensalRepository.findById(listaId).orElseThrow(() -> new ResourceNotFoundException("Lista nao encontrada"));
 
 		lista.getItens().stream().map(ItemLista::getValorTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
 		return new ResumoListaTO(lista);
