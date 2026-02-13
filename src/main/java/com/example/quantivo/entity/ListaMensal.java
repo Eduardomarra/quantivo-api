@@ -4,9 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import org.hibernate.annotations.Check;
-import org.hibernate.annotations.DialectOverride;
-
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -35,11 +33,11 @@ public class ListaMensal {
 	@Column(name = "data_criacao", nullable = false)
 	private LocalDateTime dataCriacao;
 
-	@ManyToOne(optional = false)
+	@ManyToOne(optional = false, fetch = FetchType.LAZY)
 	@JoinColumn(name = "usuario_id", nullable = false)
 	private Usuario usuario;
 
-	@OneToMany(mappedBy = "listaMensal", fetch = FetchType.LAZY)
+	@OneToMany(mappedBy = "listaMensal", cascade = CascadeType.ALL,orphanRemoval = true, fetch = FetchType.LAZY)
 	private List<ItemLista> itens;
 
 	public ListaMensal() {}
@@ -81,6 +79,22 @@ public class ListaMensal {
 
 	public void setDataCriacao(LocalDateTime dataCriacao) {
 		this.dataCriacao = dataCriacao;
+	}
+
+	public Usuario getUsuario() {
+		return usuario;
+	}
+
+	public void setUsuario(Usuario usuario) {
+		this.usuario = usuario;
+	}
+
+	public List<ItemLista> getItens() {
+		return itens;
+	}
+
+	public void setItens(List<ItemLista> itens) {
+		this.itens = itens;
 	}
 
 }

@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -35,7 +36,7 @@ public class ItemLista {
 	@Column(name= "data_criacao", nullable = false)
 	private LocalDateTime dataCriacao;
 
-	@ManyToOne(optional = false)
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "lista_id", nullable = false)
 	private ListaMensal listaMensal;
 
@@ -97,4 +98,13 @@ public class ItemLista {
 	public void setDataCriacao(LocalDateTime dataCriacao) {
 		this.dataCriacao = dataCriacao;
 	}
+
+	public ListaMensal getListaMensal() {
+		return listaMensal;
+	}
+
+	public void setListaMensal(ListaMensal listaMensal) {
+		this.listaMensal = listaMensal;
+	}
+
 }
