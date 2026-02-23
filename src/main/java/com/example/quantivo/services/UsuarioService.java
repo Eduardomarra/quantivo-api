@@ -5,9 +5,11 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.example.quantivo.entity.Usuario;
+import com.example.quantivo.exception.BusinessException;
 import com.example.quantivo.repository.UsuarioRepository;
 import com.example.quantivo.to.UsuarioTO;
 
@@ -17,6 +19,7 @@ import jakarta.transaction.Transactional;
 public class UsuarioService {
 
 	@Autowired private UsuarioRepository usuarioRepository;
+	@Autowired private PasswordEncoder passwordEncoder;
 
 	@Transactional
 	public List<UsuarioTO> buscarAllUsuarios(){
@@ -38,11 +41,16 @@ public class UsuarioService {
 
 	@Transactional
 	public UsuarioTO criarUsuario(Usuario usuario) {
+
+		if(usuarioRepository.findByEmail(usuario.getEmail()).isPresent()) {
+			throw new BusinessException("Email ja cadastrado");
+		}
+
 		Usuario user = new Usuario();
 		user.setAtivo(true);
 		user.setDataCriacao(LocalDateTime.now());
 		user.setEmail(usuario.getEmail());
-		user.setSenha(usuario.getSenha());
+		user.setSenha(passwordEncoder.encode(usuario.getSenha()));
 
 		return new UsuarioTO(usuarioRepository.save(user));
 	}
