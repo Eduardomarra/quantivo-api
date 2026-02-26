@@ -29,6 +29,22 @@
 	<properties>
 		<java.version>17</java.version>
 	</properties>
+
+    <profiles>
+        <profile>
+            <id>producao</id>
+            <properties>
+                <activatedProperties>producao</activatedProperties>
+            </properties>
+        </profile>
+        <profile>
+            <id>desenvolvimento</id>
+            <properties>
+                <activatedProperties>desenvolvimento</activatedProperties>
+            </properties>
+        </profile>
+    </profiles>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
