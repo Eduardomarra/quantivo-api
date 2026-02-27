@@ -8,7 +8,6 @@ import java.util.Date;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import io.github.cdimascio.dotenv.Dotenv;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
@@ -24,10 +23,12 @@ public class JwtService {
 	private final String secret;
 	private final long expirationHours;
 
-	public JwtService(Dotenv dotenv) {
-		this.secret = dotenv.get("JWT_SECRET");
-		this.expirationHours =
-				Long.parseLong(dotenv.get("JWT_EXPIRATION_HOURS"));
+	public JwtService(
+			@Value("${jwt.secret}") String secret,
+			@Value("${jwt.expiration-hours}") Long expirationHours) {
+
+		this.secret = secret;
+		this.expirationHours = expirationHours;
 	}
 
 	private long getExpirationMillis() {
@@ -35,7 +36,7 @@ public class JwtService {
 	}
 
 	private Key getSignKey() {
-		byte[] keyBytes = Decoders.BASE64.decode(secret);
+		byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
 		return Keys.hmacShaKeyFor(keyBytes);
 	}
 

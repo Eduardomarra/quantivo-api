@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:17
+    container_name: quantivo-db
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d quantivo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - quantivo-network
+
+  app:
+    build: .
+    container_name: quantivo-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: producao
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - quantivo-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: quantivo-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${EMAIL_PGADMIN}
+      PGADMIN_DEFAULT_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - db
+    networks:
+      - quantivo-network
+    restart: unless-stopped
+
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+
+networks:
+  quantivo-network:
+    driver: bridge
+

@@ -32,15 +32,18 @@
 
     <profiles>
         <profile>
-            <id>producao</id>
+            <id>desenvolvimento</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <properties>
-                <activatedProperties>producao</activatedProperties>
+                <activatedProperties>desenvolvimento</activatedProperties>
             </properties>
         </profile>
         <profile>
-            <id>desenvolvimento</id>
+            <id>producao</id>
             <properties>
-                <activatedProperties>desenvolvimento</activatedProperties>
+                <activatedProperties>producao</activatedProperties>
             </properties>
         </profile>
     </profiles>

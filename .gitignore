@@ -32,5 +32,25 @@ build/
 ### VS Code ###
 .vscode/
 
-### .Env ###
+### Env Files ###
 .env*
+.env/
+*.env
+.env.*
+!.env.example
+
+### Logs ###
+*.log
+logs/
+**/logs/
+
+### Docker ###
+.dockerignore
+docker-compose.override.yml
+
+### Backup files ###
+*.bak
+*.backup
+*.swp
+*.swo
+*~
