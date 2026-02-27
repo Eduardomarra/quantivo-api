@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,9 +24,9 @@ public class UsuarioService {
 	@Autowired private PasswordEncoder passwordEncoder;
 
 	@Transactional
-	public List<UsuarioTO> buscarAllUsuarios(){
-		List<Usuario> usuario = usuarioRepository.findAllUsuarios();
-		return usuario.stream().map(UsuarioTO::new).toList();
+	public Page<UsuarioTO> buscarAllUsuarios(Pageable pageable){
+		Page<Usuario> usuario = usuarioRepository.findAll(pageable);
+		return usuario.map(UsuarioTO::new);
 	}
 
 	@Transactional
