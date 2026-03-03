@@ -53,7 +53,7 @@ public class JwtService {
 	}
 
 	public String extractUsername(String token) {
-		return Jwts.parserBuilder()
+		return Jwts.parser()
 				.setSigningKey(getSignKey())
 				.build()
 				.parseClaimsJws(token)
@@ -63,7 +63,7 @@ public class JwtService {
 
 	public boolean isTokenValid(String token) {
 		try {
-			Jwts.parserBuilder()
+			Jwts.parser()
 					.setSigningKey(getSignKey())
 					.build()
 					.parseClaimsJws(token);
