@@ -13,8 +13,15 @@ import com.example.quantivo.security.JwtService;
 import com.example.quantivo.to.LoginRequestTO;
 import com.example.quantivo.to.LoginResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/auth")
+@Tag(name="Autenticação", description = "Endpoints de autenticação")
 public class AuthController {
 
 	private final AuthenticationManager authManager;
@@ -28,6 +35,13 @@ public class AuthController {
 		this.jwtService = jwtService;
 	}
 
+	@Operation(summary="Realiza login e retorna JWT")
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "Login realizado com sucesso."),
+		@ApiResponse(responseCode = "401", description = "Credenciais inválidas."),
+		@ApiResponse(responseCode = "500", description = "Erro interno."),
+	})
+	@SecurityRequirement(name = "BearerAuth")
 	@PostMapping("/login")
 	public LoginResponse login(@RequestBody LoginRequestTO request) {
 

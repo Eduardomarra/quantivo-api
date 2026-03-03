@@ -13,6 +13,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 
 import com.example.quantivo.security.JwtAuthenticationFilter;
 
@@ -22,6 +23,14 @@ import jakarta.servlet.http.HttpServletResponse;
 @EnableWebSecurity
 public class SecurityConfig {
 
+	private static final String[] SWAGGER_WHITELIST = {
+			"/swagger-ui/**",
+			"/v3/api-docs/**",
+			"/swagger-ui.html",
+			"/swagger-resources/**",
+			"/webjars/**"
+	};
+
 	private final JwtAuthenticationFilter jwtFilter;
 
 	public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
@@ -29,8 +38,14 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public SecurityFilterChain securityFilterChain(
-			HttpSecurity http) throws Exception {
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
+		RequestMatcher swaggerMatcher = request ->
+				request.getRequestURI().startsWith("/swagger-ui") ||
+						request.getRequestURI().startsWith("/v3/api-docs") ||
+						request.getRequestURI().equals("/swagger-ui.html") ||
+						request.getRequestURI().startsWith("/swagger-resources") ||
+						request.getRequestURI().startsWith("/webjars");
 
 		http
 				.csrf(csrf -> csrf.disable())
@@ -41,8 +56,8 @@ public class SecurityConfig {
 				)
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/auth/**").permitAll()
-						.requestMatchers(HttpMethod.POST, "/usuarios/criar")
-						.permitAll()
+						.requestMatchers(HttpMethod.POST, "/usuarios/criar").permitAll()
+						.requestMatchers(swaggerMatcher).permitAll()
 						.anyRequest().authenticated()
 				).exceptionHandling(ex ->
 						ex.authenticationEntryPoint(((request, response, authException) ->
