@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.example.quantivo.entity.Usuario;
 import com.example.quantivo.exception.BusinessException;
 import com.example.quantivo.repository.UsuarioRepository;
+import com.example.quantivo.to.UsuarioCreateTO;
 import com.example.quantivo.to.UsuarioTO;
 
 import jakarta.transaction.Transactional;
@@ -42,7 +43,7 @@ public class UsuarioService {
 	}
 
 	@Transactional
-	public UsuarioTO criarUsuario(Usuario usuario) {
+	public UsuarioTO criarUsuario(UsuarioCreateTO usuario) {
 
 		if(usuarioRepository.findByEmail(usuario.getEmail()).isPresent()) {
 			throw new BusinessException("Email ja cadastrado");

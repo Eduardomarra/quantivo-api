@@ -18,8 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.quantivo.entity.Usuario;
 import com.example.quantivo.services.UsuarioService;
 import com.example.quantivo.to.AlterarSenhaTO;
+import com.example.quantivo.to.UsuarioCreateTO;
 import com.example.quantivo.to.UsuarioTO;
 
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping(value = "/usuarios")
@@ -44,12 +46,12 @@ public class UsuarioController {
 	}
 
 	@PostMapping(value = "/criar")
-	public UsuarioTO criarUsuario(@RequestBody Usuario usuario){
-		return usuarioService.criarUsuario(usuario);
+	public UsuarioTO criarUsuario(@Valid @RequestBody UsuarioCreateTO to){
+		return usuarioService.criarUsuario(to);
 	}
 
 	@PutMapping(value = "/alterar-senha/{email}")
-	public void alterarSenha(@PathVariable String email, @RequestBody AlterarSenhaTO senha){
+	public void alterarSenha(@PathVariable String email, @Valid @RequestBody AlterarSenhaTO senha){
 		usuarioService.alterarSenha(email, senha.getSenhaAtual(), senha.getSenhaNova());
 	}
 

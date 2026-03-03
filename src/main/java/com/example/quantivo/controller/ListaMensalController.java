@@ -22,6 +22,8 @@ import com.example.quantivo.to.CriarListaMensalTO;
 import com.example.quantivo.to.ListaMensalTO;
 import com.example.quantivo.to.ResumoListaTO;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping(value = "/lista-mensal")
 public class ListaMensalController {
@@ -50,12 +52,12 @@ public class ListaMensalController {
 	}
 
 	@PostMapping(value = "/{listaId}/itens")
-	public ResponseEntity<ListaMensalTO> adicionarItem(@PathVariable UUID listaId, @RequestBody AdicionarItemTO to) {
+	public ResponseEntity<ListaMensalTO> adicionarItem(@PathVariable UUID listaId, @Valid @RequestBody AdicionarItemTO to) {
 		return ResponseEntity.ok(listaMensalService.adicionarItem(listaId, to));
 	}
 
 	@PutMapping(value = "/itens/{itemId}")
-	public ResponseEntity<ListaMensalTO> alterarItem(@PathVariable UUID itemId, @RequestBody AlterarItemTO to) {
+	public ResponseEntity<ListaMensalTO> alterarItem(@PathVariable UUID itemId, @Valid @RequestBody AlterarItemTO to) {
 		return ResponseEntity.ok(listaMensalService.alterarItem(itemId, to));
 	}
 

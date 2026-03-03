@@ -51,25 +51,30 @@ public class ListaMensalService {
 		return new ListaMensalTO(listaMensalRepository.save(lista));
 	}
 
+	@Transactional
 	public ListaMensalTO getPorId(UUID id) {
 		return new ListaMensalTO(listaMensalRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Lista nao encontrada")));
 	}
 
+	@Transactional
 	public ListaMensalTO getPorUsuarioIdMesAno(UUID usuarioId, Integer mes, Integer ano) {
 		ListaMensal lista = listaMensalRepository.findByUsuario_IdAndMesAndAno(usuarioId, mes, ano).orElseThrow(() -> new ResourceNotFoundException("Lista não encontrada."));
 		return new ListaMensalTO(lista);
 	}
 
+	@Transactional
 	public List<ListaMensalTO> getPorUsuarioId(UUID usuarioId) {
 		Optional<ListaMensal> lista = listaMensalRepository.findByUsuario_Id(usuarioId);
 		return lista.stream().map(ListaMensalTO::new).toList();
 	}
 
+	@Transactional
 	public void deletarLista(UUID id) {
 		listaMensalRepository.deleteById(id);
 	}
 
+	@Transactional
 	public ListaMensalTO adicionarItem(UUID listaId, AdicionarItemTO to) {
 		ListaMensal lista = listaMensalRepository.findById(listaId).orElseThrow(() -> new ResourceNotFoundException("Lista não encontrada."));
 
@@ -94,6 +99,7 @@ public class ListaMensalService {
 		return new ListaMensalTO(listaMensalRepository.save(lista));
 	}
 
+	@Transactional
 	public ListaMensalTO alterarItem(UUID itemId, AlterarItemTO to) {
 		ItemLista item = itemListaReporitory.findById(itemId).orElseThrow(() -> new ResourceNotFoundException("Item nao encontrado"));
 
@@ -107,11 +113,13 @@ public class ListaMensalService {
 		return new ListaMensalTO(item.getListaMensal());
 	}
 
+	@Transactional
 	public void deletarItem(UUID itemId) {
 		itemListaReporitory.deleteById(itemId);
 	}
 
 
+	@Transactional
 	public ResumoListaTO getResumoLista(UUID listaId) {
 		ListaMensal lista = listaMensalRepository.findById(listaId).orElseThrow(() -> new ResourceNotFoundException("Lista nao encontrada"));
 
