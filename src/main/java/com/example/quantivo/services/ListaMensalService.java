@@ -19,6 +19,7 @@ import com.example.quantivo.repository.ListaMensalRepository;
 import com.example.quantivo.repository.UsuarioRepository;
 import com.example.quantivo.to.AdicionarItemTO;
 import com.example.quantivo.to.AlterarItemTO;
+import com.example.quantivo.to.ItemListaTO;
 import com.example.quantivo.to.ListaMensalTO;
 import com.example.quantivo.to.ResumoListaTO;
 
@@ -75,7 +76,7 @@ public class ListaMensalService {
 	}
 
 	@Transactional
-	public ListaMensalTO adicionarItem(UUID listaId, AdicionarItemTO to) {
+	public ItemListaTO adicionarItem(UUID listaId, AdicionarItemTO to) {
 		ListaMensal lista = listaMensalRepository.findById(listaId).orElseThrow(() -> new ResourceNotFoundException("Lista não encontrada."));
 
 		if(to.getQuantidade() <= 0) {
@@ -94,13 +95,13 @@ public class ListaMensalService {
 		itemLista.setValorTotal(to.getValorUnitario().multiply(new BigDecimal(to.getQuantidade())));
 		itemLista.setDataCriacao(LocalDateTime.now());
 
-		lista.getItens().add(itemLista);
+		ItemLista saveItem = itemListaReporitory.save(itemLista);
 
-		return new ListaMensalTO(listaMensalRepository.save(lista));
+		return new ItemListaTO(saveItem);
 	}
 
 	@Transactional
-	public ListaMensalTO alterarItem(UUID itemId, AlterarItemTO to) {
+	public ItemListaTO alterarItem(UUID itemId, AlterarItemTO to) {
 		ItemLista item = itemListaReporitory.findById(itemId).orElseThrow(() -> new ResourceNotFoundException("Item nao encontrado"));
 
 		item.setNomeProduto(to.getNomeProduto());
@@ -108,9 +109,9 @@ public class ListaMensalService {
 		item.setValorUnitario(to.getValorUnitario());
 		item.setValorTotal(to.getValorUnitario().multiply(new BigDecimal(to.getQuantidade())));
 
-		itemListaReporitory.save(item);
+		ItemLista itemLista = itemListaReporitory.save(item);
 
-		return new ListaMensalTO(item.getListaMensal());
+		return new ItemListaTO(itemLista);
 	}
 
 	@Transactional

@@ -12,6 +12,7 @@ public class ListaMensalTO {
 	private Integer ano;
 	private LocalDateTime dataCriacao;
 	private UUID usuarioId;
+	private UUID idLista;
 	private List<AdicionarItemTO> itens;
 
 	public ListaMensalTO() {}
@@ -21,6 +22,7 @@ public class ListaMensalTO {
 		this.ano = lista.getAno();
 		this.dataCriacao = lista.getDataCriacao();
 		this.usuarioId = lista.getUsuario().getId();
+		this.idLista = lista.getId();
 	}
 
 	public Integer getMes() {
@@ -38,4 +40,9 @@ public class ListaMensalTO {
 	public UUID getUsuarioId() {
 		return usuarioId;
 	}
+
+	public UUID getIdLista() {
+		return idLista;
+	}
+
 }

@@ -51,6 +51,10 @@ public class ItemLista {
 		this.dataCriacao = dataCriacao;
 	}
 
+	public ItemLista(ItemLista item) {
+
+	}
+
 	public UUID getId() {
 		return id;
 	}

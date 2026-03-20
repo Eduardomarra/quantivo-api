@@ -19,6 +19,7 @@ import com.example.quantivo.services.ListaMensalService;
 import com.example.quantivo.to.AdicionarItemTO;
 import com.example.quantivo.to.AlterarItemTO;
 import com.example.quantivo.to.CriarListaMensalTO;
+import com.example.quantivo.to.ItemListaTO;
 import com.example.quantivo.to.ListaMensalTO;
 import com.example.quantivo.to.ResumoListaTO;
 
@@ -52,12 +53,12 @@ public class ListaMensalController {
 	}
 
 	@PostMapping(value = "/{listaId}/itens")
-	public ResponseEntity<ListaMensalTO> adicionarItem(@PathVariable UUID listaId, @Valid @RequestBody AdicionarItemTO to) {
+	public ResponseEntity<ItemListaTO> adicionarItem(@PathVariable UUID listaId, @Valid @RequestBody AdicionarItemTO to) {
 		return ResponseEntity.ok(listaMensalService.adicionarItem(listaId, to));
 	}
 
 	@PutMapping(value = "/itens/{itemId}")
-	public ResponseEntity<ListaMensalTO> alterarItem(@PathVariable UUID itemId, @Valid @RequestBody AlterarItemTO to) {
+	public ResponseEntity<ItemListaTO> alterarItem(@PathVariable UUID itemId, @Valid @RequestBody AlterarItemTO to) {
 		return ResponseEntity.ok(listaMensalService.alterarItem(itemId, to));
 	}
 

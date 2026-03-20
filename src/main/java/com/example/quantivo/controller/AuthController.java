@@ -1,17 +1,20 @@
 package com.example.quantivo.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.quantivo.entity.Usuario;
+import com.example.quantivo.repository.UsuarioRepository;
 import com.example.quantivo.security.JwtService;
 import com.example.quantivo.to.LoginRequestTO;
 import com.example.quantivo.to.LoginResponse;
+import com.example.quantivo.to.UsuarioTO;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,6 +26,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RequestMapping("/auth")
 @Tag(name="Autenticação", description = "Endpoints de autenticação")
 public class AuthController {
+
+	@Autowired private UsuarioRepository usuarioRepository;
 
 	private final AuthenticationManager authManager;
 	private final JwtService jwtService;
@@ -52,8 +57,11 @@ public class AuthController {
 				)
 		);
 
+		Usuario usuario = usuarioRepository.findByEmail(request.getEmail())
+				.orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
+
 		String token = jwtService.generateToken(request.getEmail());
 
-		return new LoginResponse(token);
+		return new LoginResponse(token, new UsuarioTO(usuario));
 	}
 }
