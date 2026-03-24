@@ -23,11 +23,24 @@ public class AdicionarItemTO {
 		return nomeProduto;
 	}
 
+	public void setNomeProduto(String nomeProduto) {
+		this.nomeProduto = nomeProduto;
+	}
+
 	public Integer getQuantidade() {
 		return quantidade;
+	}
+
+	public void setQuantidade(Integer quantidade) {
+		this.quantidade = quantidade;
 	}
 
 	public BigDecimal getValorUnitario() {
 		return valorUnitario;
 	}
+
+	public void setValorUnitario(BigDecimal valorUnitario) {
+		this.valorUnitario = valorUnitario;
+	}
+
 }

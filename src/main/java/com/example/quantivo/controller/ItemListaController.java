@@ -10,17 +10,17 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.quantivo.services.ItemService;
+import com.example.quantivo.services.ItemListaService;
 import com.example.quantivo.to.ItemListaTO;
 
 @RestController
 @RequestMapping(value = "/item-lista")
 public class ItemListaController {
 
-	@Autowired private ItemService itemService;
+	@Autowired private ItemListaService itemListaService;
 
 	@GetMapping(value = "/itens/{idLista}")
 	public ResponseEntity<List<ItemListaTO>> getItem(@PathVariable UUID idLista){
-		return ResponseEntity.ok(itemService.getItens(idLista));
+		return ResponseEntity.ok(itemListaService.getItens(idLista));
 	}
 }

@@ -15,7 +15,7 @@ import com.example.quantivo.repository.ListaMensalRepository;
 import com.example.quantivo.to.ItemListaTO;
 
 @Service
-public class ItemService {
+public class ItemListaService {
 
 	@Autowired private ItemListaReporitory itemListaReporitory;
 	@Autowired private ListaMensalRepository listaMensalRepository;

@@ -66,7 +66,7 @@ public class ListaMensalService {
 
 	@Transactional
 	public List<ListaMensalTO> getPorUsuarioId(UUID usuarioId) {
-		Optional<ListaMensal> lista = listaMensalRepository.findByUsuario_Id(usuarioId);
+		List<ListaMensal> lista = listaMensalRepository.findByUsuario_Id(usuarioId);
 		return lista.stream().map(ListaMensalTO::new).toList();
 	}
 

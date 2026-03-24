@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.quantivo.entity.Usuario;
 import com.example.quantivo.exception.BusinessException;
+import com.example.quantivo.exception.ResourceNotFoundException;
 import com.example.quantivo.repository.UsuarioRepository;
 import com.example.quantivo.to.UsuarioCreateTO;
 import com.example.quantivo.to.UsuarioTO;
@@ -74,20 +75,15 @@ public class UsuarioService {
 
 	@Transactional
 	public void alterarSenha(String email, String senhaAtual, String senhaNova) {
-		try {
-			Usuario usuario = usuarioRepository.findByEmail(email).get();
-			if(usuario != null) {
-				String senhaBD = usuarioRepository.findSenhaByEmail(email).map(Usuario::getSenha).get();
-				if(senhaBD.equals(senhaAtual)) {
-					usuario.setSenha(senhaNova);
-					usuarioRepository.save(usuario);
-				} else {
-					throw new Exception("Senha atual incorreta");
-				}
-			}
-		} catch (Exception e) {
-			new Exception("Senha atual incorreta.");
+		Usuario usuario = usuarioRepository.findByEmail(email)
+				.orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+		if (!passwordEncoder.matches(senhaAtual, usuario.getSenha())) {
+			throw new BusinessException("Senha atual incorreta");
 		}
+
+		usuario.setSenha(passwordEncoder.encode(senhaNova));
+		usuarioRepository.save(usuario);
 	}
 
 	@Transactional
