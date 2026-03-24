@@ -33,15 +33,32 @@ public class UsuarioTO {
 		return id;
 	}
 
+	public void setId(UUID id) {
+		this.id = id;
+	}
+
 	public String getEmail() {
 		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
 	}
 
 	public Boolean getAtivo() {
 		return ativo;
 	}
 
+	public void setAtivo(Boolean ativo) {
+		this.ativo = ativo;
+	}
+
 	public LocalDateTime getDataCriacao() {
 		return dataCriacao;
 	}
+
+	public void setDataCriacao(LocalDateTime dataCriacao) {
+		this.dataCriacao = dataCriacao;
+	}
+
 }

@@ -13,6 +13,8 @@ public class ItemListaTO {
 	private BigDecimal valorUnitario;
 	private BigDecimal valorTotal;
 
+	public ItemListaTO() {}
+
 	public ItemListaTO(ItemLista item){
 		id = item.getId();
 		nomeProduto = item.getNomeProduto();
@@ -25,19 +27,40 @@ public class ItemListaTO {
 		return id;
 	}
 
+	public void setId(UUID id) {
+		this.id = id;
+	}
+
 	public String getNomeProduto() {
 		return nomeProduto;
+	}
+
+	public void setNomeProduto(String nomeProduto) {
+		this.nomeProduto = nomeProduto;
 	}
 
 	public Integer getQuantidade() {
 		return quantidade;
 	}
 
+	public void setQuantidade(Integer quantidade) {
+		this.quantidade = quantidade;
+	}
+
 	public BigDecimal getValorUnitario() {
 		return valorUnitario;
+	}
+
+	public void setValorUnitario(BigDecimal valorUnitario) {
+		this.valorUnitario = valorUnitario;
 	}
 
 	public BigDecimal getValorTotal() {
 		return valorTotal;
 	}
+
+	public void setValorTotal(BigDecimal valorTotal) {
+		this.valorTotal = valorTotal;
+	}
+
 }

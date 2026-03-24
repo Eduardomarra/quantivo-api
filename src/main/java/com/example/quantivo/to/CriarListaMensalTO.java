@@ -10,4 +10,7 @@ public class CriarListaMensalTO {
 		return usuarioId;
 	}
 
+	public void setUsuarioId(UUID usuarioId) {
+		this.usuarioId = usuarioId;
+	}
 }

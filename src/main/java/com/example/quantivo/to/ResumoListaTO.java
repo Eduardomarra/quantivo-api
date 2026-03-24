@@ -19,8 +19,15 @@ public class ResumoListaTO {
 		return valorTotal;
 	}
 
+	public void setValorTotal(BigDecimal valorTotal) {
+		this.valorTotal = valorTotal;
+	}
+
 	public Integer getTotalItens() {
 		return totalItens;
 	}
 
+	public void setTotalItens(Integer totalItens) {
+		this.totalItens = totalItens;
+	}
 }

@@ -21,6 +21,11 @@ public class ItemListaController {
 
 	@GetMapping(value = "/itens/{idLista}")
 	public ResponseEntity<List<ItemListaTO>> getItem(@PathVariable UUID idLista){
+
+		if (idLista == null) {
+			throw new IllegalArgumentException("ID da lista não pode ser nulo");
+		}
+
 		return ResponseEntity.ok(itemListaService.getItens(idLista));
 	}
 }

@@ -29,20 +29,40 @@ public class ListaMensalTO {
 		return mes;
 	}
 
+	public void setMes(Integer mes) {
+		this.mes = mes;
+	}
+
 	public Integer getAno() {
 		return ano;
+	}
+
+	public void setAno(Integer ano) {
+		this.ano = ano;
 	}
 
 	public LocalDateTime getDataCriacao() {
 		return dataCriacao;
 	}
 
+	public void setDataCriacao(LocalDateTime dataCriacao) {
+		this.dataCriacao = dataCriacao;
+	}
+
 	public UUID getUsuarioId() {
 		return usuarioId;
 	}
 
+	public void setUsuarioId(UUID usuarioId) {
+		this.usuarioId = usuarioId;
+	}
+
 	public UUID getIdLista() {
 		return idLista;
+	}
+
+	public void setIdLista(UUID idLista) {
+		this.idLista = idLista;
 	}
 
 }

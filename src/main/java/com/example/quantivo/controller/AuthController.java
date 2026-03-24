@@ -21,21 +21,24 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/auth")
 @Tag(name="Autenticação", description = "Endpoints de autenticação")
 public class AuthController {
 
-	@Autowired private UsuarioRepository usuarioRepository;
+	private final UsuarioRepository usuarioRepository;
 
 	private final AuthenticationManager authManager;
 	private final JwtService jwtService;
 
 	public AuthController(
+			UsuarioRepository usuarioRepository,
 			AuthenticationManager authManager,
 			JwtService jwtService
 	) {
+		this.usuarioRepository = usuarioRepository;
 		this.authManager = authManager;
 		this.jwtService = jwtService;
 	}
@@ -48,7 +51,16 @@ public class AuthController {
 	})
 	@SecurityRequirement(name = "BearerAuth")
 	@PostMapping("/login")
-	public LoginResponse login(@RequestBody LoginRequestTO request) {
+	public LoginResponse login(@Valid @RequestBody LoginRequestTO request) {
+
+		// Validação dos campos
+		if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+			throw new IllegalArgumentException("Email não pode ser nulo ou vazio");
+		}
+
+		if (request.getSenha() == null || request.getSenha().trim().isEmpty()) {
+			throw new IllegalArgumentException("Senha não pode ser nula ou vazia");
+		}
 
 		authManager.authenticate(
 				new UsernamePasswordAuthenticationToken(
