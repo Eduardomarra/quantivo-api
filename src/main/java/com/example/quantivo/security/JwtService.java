@@ -13,7 +13,6 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.UnsupportedJwtException;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 
@@ -26,6 +25,14 @@ public class JwtService {
 	public JwtService(
 			@Value("${jwt.secret}") String secret,
 			@Value("${jwt.expiration-hours}") Long expirationHours) {
+
+		// Validação da chave secreta
+		if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+			throw new IllegalArgumentException(
+					"JWT secret must be at least 32 bytes (256 bits). Current: " +
+							(secret != null ? secret.getBytes(StandardCharsets.UTF_8).length : 0)
+			);
+		}
 
 		this.secret = secret;
 		this.expirationHours = expirationHours;
@@ -41,13 +48,12 @@ public class JwtService {
 	}
 
 	public String generateToken(String username) {
+		long now = System.currentTimeMillis();
 
 		return Jwts.builder()
 				.setSubject(username)
-				.setIssuedAt(new Date())
-				.setExpiration(
-						new Date(System.currentTimeMillis() + getExpirationMillis())
-				)
+				.setIssuedAt(new Date(now))
+				.setExpiration(new Date(now + getExpirationMillis()))
 				.signWith(getSignKey(), SignatureAlgorithm.HS256)
 				.compact();
 	}
