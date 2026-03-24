@@ -1,6 +1,8 @@
 package com.example.quantivo.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -51,7 +53,7 @@ public class AuthController {
 	})
 	@SecurityRequirement(name = "BearerAuth")
 	@PostMapping("/login")
-	public LoginResponse login(@Valid @RequestBody LoginRequestTO request) {
+	public ResponseEntity<UsuarioTO> login(@Valid @RequestBody LoginRequestTO request) {
 
 		// Validação dos campos
 		if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
@@ -74,6 +76,9 @@ public class AuthController {
 
 		String token = jwtService.generateToken(request.getEmail());
 
-		return new LoginResponse(token, new UsuarioTO(usuario));
+		return ResponseEntity.ok()
+				.header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+				.header("Access-Control-Expose-Headers", HttpHeaders.AUTHORIZATION) // Para CORS
+				.body(new UsuarioTO(usuario));
 	}
 }

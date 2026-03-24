@@ -12,7 +12,7 @@ public class LoginRequestTO {
 	@Schema(example = "usuario@email.com.br")
 	private String email;
 
-	@NotBlank(message = "Senha é obrigatória")
+	//@NotBlank(message = "Senha é obrigatória")
 	@Schema(example = "123456Aa@-*")
 	private String senha;
 
