@@ -45,11 +45,6 @@ public class UsuarioController {
 		return usuarioService.buscarPorId(id);
 	}
 
-	@PostMapping(value = "/criar")
-	public UsuarioTO criarUsuario(@Valid @RequestBody UsuarioCreateTO to){
-		return usuarioService.criarUsuario(to);
-	}
-
 	@PutMapping(value = "/alterar-senha/{email}")
 	public void alterarSenha(@PathVariable String email, @Valid @RequestBody AlterarSenhaTO senha){
 		usuarioService.alterarSenha(email, senha.getSenhaAtual(), senha.getSenhaNova());

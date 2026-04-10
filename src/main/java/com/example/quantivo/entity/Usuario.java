@@ -32,6 +32,12 @@ public class Usuario {
 
 	public Usuario() {}
 
+	public Usuario(String email, String senha) {
+		this.email = email;
+		this.senha = senha;
+		this.ativo = true;
+	}
+
 	public Usuario(UUID id, String email, String senha, Boolean ativo, LocalDateTime dataCriacao) {
 		this.id = id;
 		this.email = email;

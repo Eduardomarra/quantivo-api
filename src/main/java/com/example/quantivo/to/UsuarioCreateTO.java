@@ -1,5 +1,7 @@
 package com.example.quantivo.to;
 
+import com.example.quantivo.entity.Usuario;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -19,6 +21,10 @@ public class UsuarioCreateTO {
 	@Pattern(regexp = "^(?=.*[0-9])(?=.*[a-zA-Z]).*$",
 			message = "Senha deve conter letras e números")
 	private String senha;
+
+	public UsuarioCreateTO() {}
+
+	public UsuarioCreateTO(String email, String senha) {}
 
 	public String getEmail() {
 		return email;
