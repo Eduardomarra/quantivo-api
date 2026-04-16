@@ -1,34 +1,32 @@
 package com.example.quantivo.controller;
 
-import java.time.LocalDateTime;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
+import com.example.quantivo.entity.PasswordResetToken;
 import com.example.quantivo.entity.Usuario;
 import com.example.quantivo.exception.BusinessException;
 import com.example.quantivo.repository.UsuarioRepository;
 import com.example.quantivo.security.JwtService;
-import com.example.quantivo.services.UsuarioService;
+import com.example.quantivo.service.EmailService;
+import com.example.quantivo.service.PasswordResetTokenService;
+import com.example.quantivo.to.ForgotPasswordRequest;
 import com.example.quantivo.to.LoginRequestTO;
+import com.example.quantivo.to.PasswordResetRequest;
 import com.example.quantivo.to.UsuarioTO;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/auth")
@@ -39,17 +37,23 @@ public class AuthController {
 	private final AuthenticationManager authManager;
 	private final JwtService jwtService;
 	private final PasswordEncoder passwordEncoder;
+	private final PasswordResetTokenService tokenService;
+	private final EmailService emailService;
 
 	public AuthController(
 			UsuarioRepository usuarioRepository,
 			AuthenticationManager authManager,
 			JwtService jwtService,
-			PasswordEncoder passwordEncoder
+			PasswordEncoder passwordEncoder,
+			PasswordResetTokenService tokenService,
+			EmailService emailService
 	) {
 		this.usuarioRepository = usuarioRepository;
 		this.authManager = authManager;
 		this.jwtService = jwtService;
 		this.passwordEncoder = passwordEncoder;
+		this.tokenService = tokenService;
+		this.emailService = emailService;
 	}
 
 	@Operation(summary="Realiza login e retorna JWT")
@@ -112,6 +116,48 @@ public class AuthController {
 				.header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
 				.header("Access-Control-Expose-Headers", HttpHeaders.AUTHORIZATION)
 				.body(new UsuarioTO(usuario));
+	}
+
+	@PostMapping("/forgot-password")
+	public ResponseEntity<Void> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+
+		Usuario user = usuarioRepository.findByEmail(request.getEmail())
+				.orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
+
+		PasswordResetToken token = tokenService.createToken(user);
+		emailService.sendPasswordResetEmail(user.getEmail(), token.getToken());
+
+		return ResponseEntity.ok().build();
+	}
+
+	@PostMapping("/save-password")
+	public ResponseEntity<Void> savePassword(@RequestBody PasswordResetRequest request) {
+
+		if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+			throw new BusinessException("As senhas não conferem.");
+		}
+
+		PasswordResetToken resetToken = tokenService.validatePasswordResetToken(request.getToken());
+
+		if (resetToken == null) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+		}
+
+		Usuario user = resetToken.getUser();
+		user.setSenha(passwordEncoder.encode(request.getNewPassword()));
+		usuarioRepository.save(user);
+		tokenService.deleteToken(request.getToken());
+
+		return ResponseEntity.ok().build();
+	}
+
+	@GetMapping("/validate-token")
+	public ResponseEntity<Void> validateToken(@RequestParam("token") String token) {
+		PasswordResetToken resetToken = tokenService.validatePasswordResetToken(token);
+		if (resetToken == null) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+		}
+		return ResponseEntity.ok().build();
 	}
 
 	private void validateRequest(LoginRequestTO request) {

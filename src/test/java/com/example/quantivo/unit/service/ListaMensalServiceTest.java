@@ -7,7 +7,7 @@ import com.example.quantivo.exception.ResourceNotFoundException;
 import com.example.quantivo.repository.ItemListaReporitory;
 import com.example.quantivo.repository.ListaMensalRepository;
 import com.example.quantivo.repository.UsuarioRepository;
-import com.example.quantivo.services.ListaMensalService;
+import com.example.quantivo.service.ListaMensalService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

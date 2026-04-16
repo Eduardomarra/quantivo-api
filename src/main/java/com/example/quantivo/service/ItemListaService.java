@@ -1,4 +1,4 @@
-package com.example.quantivo.services;
+package com.example.quantivo.service;
 
 import java.util.List;
 import java.util.UUID;

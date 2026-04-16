@@ -3,7 +3,7 @@ package com.example.quantivo.integration.controller;
 import com.example.quantivo.controller.ItemListaController;
 import com.example.quantivo.entity.ItemLista;
 import com.example.quantivo.entity.ListaMensal;
-import com.example.quantivo.services.ItemListaService;
+import com.example.quantivo.service.ItemListaService;
 import com.example.quantivo.to.ItemListaTO;
 import com.example.quantivo.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,11 +1,10 @@
 package com.example.quantivo.integration.controller;
 
 import com.example.quantivo.controller.ListaMensalController;
-import com.example.quantivo.services.ListaMensalService;
+import com.example.quantivo.service.ListaMensalService;
 import com.example.quantivo.to.*;
 import com.example.quantivo.entity.ItemLista;
 import com.example.quantivo.entity.ListaMensal;
-import com.example.quantivo.entity.Usuario;
 import com.example.quantivo.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -1,6 +1,5 @@
 package com.example.quantivo.controller;
 
-import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,16 +8,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.quantivo.entity.Usuario;
-import com.example.quantivo.services.UsuarioService;
+import com.example.quantivo.service.UsuarioService;
 import com.example.quantivo.to.AlterarSenhaTO;
-import com.example.quantivo.to.UsuarioCreateTO;
 import com.example.quantivo.to.UsuarioTO;
 
 import jakarta.validation.Valid;

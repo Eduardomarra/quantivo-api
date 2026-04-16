@@ -7,7 +7,7 @@ import com.example.quantivo.to.UsuarioCreateTO;
 import com.example.quantivo.to.UsuarioTO;
 import com.example.quantivo.exception.BusinessException;
 import com.example.quantivo.exception.ResourceNotFoundException;
-import com.example.quantivo.services.UsuarioService;
+import com.example.quantivo.service.UsuarioService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

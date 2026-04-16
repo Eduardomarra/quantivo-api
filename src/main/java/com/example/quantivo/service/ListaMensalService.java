@@ -1,4 +1,4 @@
-package com.example.quantivo.services;
+package com.example.quantivo.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

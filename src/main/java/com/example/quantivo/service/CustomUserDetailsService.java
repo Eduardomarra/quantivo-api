@@ -1,4 +1,4 @@
-package com.example.quantivo.services;
+package com.example.quantivo.service;
 
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

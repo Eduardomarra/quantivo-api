@@ -2,7 +2,7 @@ package com.example.quantivo.unit.service;
 
 import com.example.quantivo.entity.Usuario;
 import com.example.quantivo.repository.UsuarioRepository;
-import com.example.quantivo.services.CustomUserDetailsService;
+import com.example.quantivo.service.CustomUserDetailsService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

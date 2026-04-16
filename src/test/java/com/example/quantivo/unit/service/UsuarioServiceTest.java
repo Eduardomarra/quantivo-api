@@ -1,7 +1,7 @@
 package com.example.quantivo.unit.service;
 
 import com.example.quantivo.exception.ResourceNotFoundException;
-import com.example.quantivo.services.UsuarioService;
+import com.example.quantivo.service.UsuarioService;
 import com.example.quantivo.entity.Usuario;
 import com.example.quantivo.exception.BusinessException;
 import com.example.quantivo.repository.UsuarioRepository;
