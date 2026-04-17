@@ -19,6 +19,7 @@ import com.example.quantivo.repository.ListaMensalRepository;
 import com.example.quantivo.repository.UsuarioRepository;
 import com.example.quantivo.to.AdicionarItemTO;
 import com.example.quantivo.to.AlterarItemTO;
+import com.example.quantivo.to.CriarListaMensalTO;
 import com.example.quantivo.to.ItemListaTO;
 import com.example.quantivo.to.ListaMensalTO;
 import com.example.quantivo.to.ResumoListaTO;
@@ -33,20 +34,15 @@ public class ListaMensalService {
 	@Autowired private ItemListaReporitory itemListaReporitory;
 
 	@Transactional
-	public ListaMensalTO criarListaMensal(UUID usuarioId) {
-		Usuario usuario = usuarioRepository.findById(usuarioId)
+	public ListaMensalTO criarListaMensal(CriarListaMensalTO to) {
+		Usuario usuario = usuarioRepository.findById(to.getUsuarioId())
 				.orElseThrow(() -> new ResourceNotFoundException("Usuario nao encontrado"));
-
-		Optional<ListaMensal> listaMensal = listaMensalRepository.findByUsuario_IdAndMesAndAno(usuarioId, LocalDateTime.now().getMonthValue(), LocalDateTime.now().getYear());
-
-		if(listaMensal.isPresent()) {
-			return new ListaMensalTO(listaMensal.get());
-		}
 
 		ListaMensal lista = new ListaMensal();
 		lista.setUsuario(usuario);
 		lista.setAno(LocalDateTime.now().getYear());
 		lista.setMes(LocalDateTime.now().getMonthValue());
+		lista.setDescricao(to.getDescricao());
 		lista.setDataCriacao(LocalDateTime.now());
 
 		return new ListaMensalTO(listaMensalRepository.save(lista));

@@ -10,6 +10,7 @@ public class ListaMensalTO {
 
 	private Integer mes;
 	private Integer ano;
+	private String descricao;
 	private LocalDateTime dataCriacao;
 	private UUID usuarioId;
 	private UUID idLista;
@@ -20,6 +21,7 @@ public class ListaMensalTO {
 	public ListaMensalTO(ListaMensal lista){
 		this.mes = lista.getMes();
 		this.ano = lista.getAno();
+		this.descricao = lista.getDescricao();
 		this.dataCriacao = lista.getDataCriacao();
 		this.usuarioId = lista.getUsuario().getId();
 		this.idLista = lista.getId();
@@ -39,6 +41,14 @@ public class ListaMensalTO {
 
 	public void setAno(Integer ano) {
 		this.ano = ano;
+	}
+
+	public String getDescricao() {
+		return descricao;
+	}
+
+	public void setDescricao(String descricao) {
+		this.descricao = descricao;
 	}
 
 	public LocalDateTime getDataCriacao() {

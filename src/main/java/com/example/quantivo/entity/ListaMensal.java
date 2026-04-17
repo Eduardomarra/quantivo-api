@@ -29,6 +29,9 @@ public class ListaMensal {
 
 	@Column(nullable = false)
 	private Integer ano;
+	
+	@Column(name = "descricao")
+	private String descricao;
 
 	@Column(name = "data_criacao", nullable = false)
 	private LocalDateTime dataCriacao;
@@ -42,10 +45,11 @@ public class ListaMensal {
 
 	public ListaMensal() {}
 
-	public ListaMensal(UUID id, Integer mes, Integer ano, LocalDateTime dataCriacao) {
+	public ListaMensal(UUID id, Integer mes, Integer ano, String descricao, LocalDateTime dataCriacao) {
 		this.id = id;
 		this.mes = mes;
 		this.ano = ano;
+		this.descricao = descricao;
 		this.dataCriacao = dataCriacao;
 	}
 
@@ -71,6 +75,14 @@ public class ListaMensal {
 
 	public void setAno(Integer ano) {
 		this.ano = ano;
+	}
+
+	public String getDescricao() {
+		return descricao;
+	}
+
+	public void setDescricao(String descricao) {
+		this.descricao = descricao;
 	}
 
 	public LocalDateTime getDataCriacao() {

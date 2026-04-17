@@ -33,7 +33,7 @@ public class ListaMensalController {
 
 	@PostMapping(value = "/criar")
 	public ResponseEntity<ListaMensalTO> criar(@RequestBody CriarListaMensalTO to) {
-		return ResponseEntity.ok(listaMensalService.criarListaMensal(to.getUsuarioId()));
+		return ResponseEntity.ok(listaMensalService.criarListaMensal(to));
 	}
 
 	@GetMapping(value = "/lista-id/{id}")
