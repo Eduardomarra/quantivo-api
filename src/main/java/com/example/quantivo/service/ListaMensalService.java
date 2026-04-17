@@ -79,8 +79,8 @@ public class ListaMensalService {
 			throw new BusinessException("Quantidade deve ser maior que 0.");
 		}
 
-		if(to.getValorUnitario().floatValue() <= 0) {
-			throw new BusinessException("Valor unitário deve ser maior que 0.");
+		if(to.getValorUnitario().floatValue() < 0) {
+			throw new BusinessException("Valor unitário não pode ser negativo.");
 		}
 
 		ItemLista itemLista = new ItemLista();
