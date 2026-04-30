@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.quantivo.entity.ItemLista;
 import com.example.quantivo.entity.ListaMensal;
+import com.example.quantivo.exception.BusinessException;
 import com.example.quantivo.exception.ResourceNotFoundException;
 import com.example.quantivo.repository.ItemListaReporitory;
 import com.example.quantivo.repository.ListaMensalRepository;
@@ -21,9 +22,13 @@ public class ItemListaService {
 	@Autowired private ListaMensalRepository listaMensalRepository;
 
 	@Transactional(readOnly = true)
-	public List<ItemListaTO> getItens(UUID idLista) {
+	public List<ItemListaTO> getItens(String emailLogado, UUID idLista) {
 		ListaMensal lista = listaMensalRepository.findById(idLista)
 				.orElseThrow(() -> new ResourceNotFoundException("Lista mensal não encontrada."));
+
+		if (!lista.getUsuario().getEmail().equals(emailLogado)) {
+			throw new BusinessException("Acesso negado. A lista pertence a outro usuário.");
+		}
 
 		List<ItemLista> item = itemListaReporitory.findByListaMensalId(idLista);
 

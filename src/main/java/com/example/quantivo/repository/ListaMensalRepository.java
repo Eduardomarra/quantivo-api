@@ -14,4 +14,7 @@ public interface ListaMensalRepository extends JpaRepository<ListaMensal, UUID> 
 	Optional<ListaMensal> findById(UUID id);
 	List<ListaMensal> findByUsuario_Id(UUID usuarioId);
 	void deleteById(UUID id);
+
+	UUID id(UUID id);
+
 }

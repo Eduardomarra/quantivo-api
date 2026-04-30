@@ -21,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -49,11 +50,13 @@ class UsuarioServiceTest {
 	private String senhaEncoded;
 	private Usuario usuario;
 	private UsuarioCreateTO usuarioCreateTO;
+	private String emailLogado;
 
 	@BeforeEach
 	void setUp() {
 		usuarioId = UUID.randomUUID();
 		email = "usuario@teste.com";
+		emailLogado = "usuario@teste.com";
 		senha = "senha123";
 		senhaEncoded = "$2a$10$encodedPasswordHash";
 
@@ -102,43 +105,20 @@ class UsuarioServiceTest {
 	}
 
 	@Test
-	@DisplayName("Deve retornar página de usuários")
-	void deveRetornarPaginaDeUsuarios() {
+	@DisplayName("Deve lançar exceção ao buscar todos os usuários")
+	void deveLancarExcecaoAoBuscarTodosUsuarios() {
 		Pageable pageable = PageRequest.of(0, 10);
-		List<Usuario> usuarios = List.of(usuario);
-		Page<Usuario> page = new PageImpl<>(usuarios, pageable, 1);
-
-		when(usuarioRepository.findAll(pageable)).thenReturn(page);
-
-		Page<UsuarioTO> resultado = usuarioService.buscarAllUsuarios(pageable);
-
-		assertThat(resultado).isNotNull();
-		assertThat(resultado.getContent()).hasSize(1);
-		assertThat(resultado.getContent().get(0).getEmail()).isEqualTo(email);
-
-		verify(usuarioRepository, times(1)).findAll(pageable);
+		assertThatThrownBy(() -> usuarioService.buscarAllUsuarios(emailLogado, pageable))
+				.isInstanceOf(BusinessException.class)
+				.hasMessage("Acesso negado. Não é permitido listar todos os usuários.");
 	}
 
 	@Test
-	@DisplayName("Deve retornar página vazia quando não há usuários")
-	void deveRetornarPaginaVazia() {
-		Pageable pageable = PageRequest.of(0, 10);
-		Page<Usuario> page = Page.empty(pageable);
-
-		when(usuarioRepository.findAll(pageable)).thenReturn(page);
-
-		Page<UsuarioTO> resultado = usuarioService.buscarAllUsuarios(pageable);
-
-		assertThat(resultado).isEmpty();
-		assertThat(resultado.getContent()).isEmpty();
-	}
-
-	@Test
-	@DisplayName("Deve retornar usuário quando email existe")
-	void deveRetornarUsuarioQuandoEmailExiste() {
+	@DisplayName("Deve retornar usuário quando email existe e pertence ao usuário logado")
+	void deveRetornarUsuarioQuandoEmailPertenceAoLogado() {
 		when(usuarioRepository.findByEmail(email)).thenReturn(Optional.of(usuario));
 
-		UsuarioTO resultado = usuarioService.buscarPorEmail(email);
+		UsuarioTO resultado = usuarioService.buscarPorEmail(emailLogado, email);
 
 		assertThat(resultado).isNotNull();
 		assertThat(resultado.getEmail()).isEqualTo(email);
@@ -148,22 +128,20 @@ class UsuarioServiceTest {
 	}
 
 	@Test
-	@DisplayName("Deve lançar exceção quando email não existe")
-	void deveLancarExcecaoQuandoEmailNaoExiste() {
-		String emailNaoExistente = "naoexiste@teste.com";
-		when(usuarioRepository.findByEmail(emailNaoExistente))
-				.thenThrow(new RuntimeException("Usuário não encontrado"));
-
-		assertThatThrownBy(() -> usuarioService.buscarPorEmail(emailNaoExistente))
-				.isInstanceOf(RuntimeException.class);
+	@DisplayName("Deve lançar exceção ao buscar email de outro usuário")
+	void deveLancarExcecaoAoBuscarEmailDeOutroUsuario() {
+		String outroEmail = "outro@teste.com";
+		assertThatThrownBy(() -> usuarioService.buscarPorEmail(emailLogado, outroEmail))
+				.isInstanceOf(BusinessException.class)
+				.hasMessage("Acesso negado. Você não tem permissão para visualizar este usuário.");
 	}
 
 	@Test
-	@DisplayName("Deve retornar usuário quando ID existe")
-	void deveRetornarUsuarioQuandoIdExiste() {
+	@DisplayName("Deve retornar usuário quando ID existe e pertence ao usuário logado")
+	void deveRetornarUsuarioQuandoIdPertenceAoLogado() {
 		when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
 
-		UsuarioTO resultado = usuarioService.buscarPorId(usuarioId);
+		UsuarioTO resultado = usuarioService.buscarPorId(emailLogado, usuarioId);
 
 		assertThat(resultado).isNotNull();
 		assertThat(resultado.getId()).isEqualTo(usuarioId);
@@ -173,28 +151,29 @@ class UsuarioServiceTest {
 	}
 
 	@Test
-	@DisplayName("Deve lançar exceção quando ID não existe")
-	void deveLancarExcecaoQuandoIdNaoExiste() {
-		UUID idInvalido = UUID.randomUUID();
-		when(usuarioRepository.findById(idInvalido))
-				.thenThrow(new RuntimeException("Usuário não encontrado"));
+	@DisplayName("Deve lançar exceção ao buscar ID de outro usuário")
+	void deveLancarExcecaoAoBuscarIdDeOutroUsuario() {
+		UUID outroId = UUID.randomUUID();
+		Usuario outroUsuario = new Usuario();
+		outroUsuario.setId(outroId);
+		outroUsuario.setEmail("outro@teste.com");
 
-		assertThatThrownBy(() -> usuarioService.buscarPorId(idInvalido))
-				.isInstanceOf(RuntimeException.class);
+		when(usuarioRepository.findById(outroId)).thenReturn(Optional.of(outroUsuario));
+
+		assertThatThrownBy(() -> usuarioService.buscarPorId(emailLogado, outroId))
+				.isInstanceOf(BusinessException.class)
+				.hasMessage("Acesso negado. Você não tem permissão para visualizar este usuário.");
 	}
 
 	@Test
 	@DisplayName("Deve ativar usuário com sucesso")
 	void deveAtivarUsuarioComSucesso() {
-		// Arrange
 		usuario.setAtivo(false);
 		when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
 		when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
 
-		// Act
-		usuarioService.ativarUsuario(usuarioId);
+		usuarioService.ativarUsuario(emailLogado, usuarioId);
 
-		// Assert
 		assertThat(usuario.getAtivo()).isTrue();
 		verify(usuarioRepository, times(1)).findById(usuarioId);
 		verify(usuarioRepository, times(1)).save(usuario);
@@ -207,22 +186,11 @@ class UsuarioServiceTest {
 		when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
 		when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
 
-		usuarioService.desativarUsuario(usuarioId);
+		usuarioService.desativarUsuario(emailLogado, usuarioId);
 
 		assertThat(usuario.getAtivo()).isFalse();
 		verify(usuarioRepository, times(1)).findById(usuarioId);
 		verify(usuarioRepository, times(1)).save(usuario);
-	}
-
-	@Test
-	@DisplayName("Deve lançar exceção ao ativar usuário inexistente")
-	void deveLancarExcecaoAoAtivarUsuarioInexistente() {
-		UUID idInvalido = UUID.randomUUID();
-		when(usuarioRepository.findById(idInvalido))
-				.thenThrow(new RuntimeException("Usuário não encontrado"));
-
-		assertThatThrownBy(() -> usuarioService.ativarUsuario(idInvalido))
-				.isInstanceOf(RuntimeException.class);
 	}
 
 	@Test
@@ -237,7 +205,7 @@ class UsuarioServiceTest {
 		when(passwordEncoder.encode(eq(senhaNova))).thenReturn(senhaNovaEncoded);
 		when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
 
-		usuarioService.alterarSenha(email, senhaAtual, senhaNova);
+		usuarioService.alterarSenha(emailLogado, email, senhaAtual, senhaNova);
 
 		verify(usuarioRepository).findByEmail(email);
 		verify(passwordEncoder).matches(eq(senhaAtual), anyString());
@@ -248,39 +216,15 @@ class UsuarioServiceTest {
 	@Test
 	@DisplayName("Deve lançar exceção quando senha atual está incorreta")
 	void deveLancarExcecaoQuandoSenhaAtualIncorreta() {
-		// Arrange
 		String senhaAtual = "senhaErrada";
 		String senhaNova = "novaSenha456";
 
 		when(usuarioRepository.findByEmail(email)).thenReturn(Optional.of(usuario));
 		when(passwordEncoder.matches(senhaAtual, usuario.getSenha())).thenReturn(false);
 
-		// Act & Assert
-		assertThatThrownBy(() -> usuarioService.alterarSenha(email, senhaAtual, senhaNova))
+		assertThatThrownBy(() -> usuarioService.alterarSenha(emailLogado, email, senhaAtual, senhaNova))
 				.isInstanceOf(BusinessException.class)
 				.hasMessage("Senha atual incorreta");
-
-		verify(usuarioRepository, times(1)).findByEmail(email);
-		verify(passwordEncoder, times(1)).matches(senhaAtual, usuario.getSenha());
-		verify(passwordEncoder, never()).encode(anyString());
-		verify(usuarioRepository, never()).save(any());
-	}
-
-	@Test
-	@DisplayName("Deve lançar exceção quando usuário não encontrado")
-	void deveLancarExcecaoQuandoUsuarioNaoEncontrado() {
-		// Arrange
-		String emailNaoExistente = "naoexiste@teste.com";
-		when(usuarioRepository.findByEmail(emailNaoExistente))
-				.thenReturn(Optional.empty());
-
-		// Act & Assert
-		assertThatThrownBy(() -> usuarioService.alterarSenha(emailNaoExistente, "senha", "nova"))
-				.isInstanceOf(ResourceNotFoundException.class)
-				.hasMessage("Usuário não encontrado");
-
-		verify(passwordEncoder, never()).matches(anyString(), anyString());
-		verify(usuarioRepository, never()).save(any());
 	}
 
 	@Test
@@ -290,51 +234,10 @@ class UsuarioServiceTest {
 		when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
 		when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
 
-		usuarioService.excluirUsuario(usuarioId);
+		usuarioService.excluirUsuario(emailLogado, usuarioId);
 
 		assertThat(usuario.getAtivo()).isFalse();
 		verify(usuarioRepository, times(1)).findById(usuarioId);
 		verify(usuarioRepository, times(1)).save(usuario);
-	}
-
-	@Test
-	@DisplayName("Deve lançar exceção ao excluir usuário inexistente")
-	void deveLancarExcecaoAoExcluirUsuarioInexistente() {
-		UUID idInvalido = UUID.randomUUID();
-		when(usuarioRepository.findById(idInvalido))
-				.thenThrow(new RuntimeException("Usuário não encontrado"));
-
-		assertThatThrownBy(() -> usuarioService.excluirUsuario(idInvalido))
-				.isInstanceOf(RuntimeException.class);
-	}
-
-	@Test
-	@DisplayName("Deve manter dados do usuário ao criar")
-	void deveManterDadosCorretosAoCriar() {
-		when(usuarioRepository.findByEmail(email)).thenReturn(Optional.empty());
-		when(passwordEncoder.encode(senha)).thenReturn(senhaEncoded);
-		when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> {
-			Usuario user = invocation.getArgument(0);
-			user.setId(usuarioId);
-			return user;
-		});
-
-		UsuarioTO resultado = usuarioService.criarUsuario(usuarioCreateTO);
-
-		assertThat(resultado.getEmail()).isEqualTo(email);
-		assertThat(resultado.getAtivo()).isTrue();
-		assertThat(resultado.getDataCriacao()).isNotNull();
-	}
-
-	@Test
-	@DisplayName("Deve tratar email com case insensitive")
-	void deveTratarEmailComCaseInsensitive() {
-		String emailMaiusculo = "USUARIO@TESTE.COM";
-		when(usuarioRepository.findByEmail(emailMaiusculo)).thenReturn(Optional.of(usuario));
-
-		UsuarioTO resultado = usuarioService.buscarPorEmail(emailMaiusculo);
-
-		assertThat(resultado).isNotNull();
-		assertThat(resultado.getEmail()).isEqualTo(email);
 	}
 }

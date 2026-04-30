@@ -15,10 +15,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,6 +36,12 @@ class ListaMensalControllerTest {
 	@Mock
 	private ListaMensalService listaMensalService;
 
+	@Mock
+	private SecurityContext securityContext;
+
+	@Mock
+	private Authentication authentication;
+
 	@InjectMocks
 	private ListaMensalController listaMensalController;
 
@@ -42,16 +51,17 @@ class ListaMensalControllerTest {
 	private ListaMensalTO listaMensalTO;
 	private List<ListaMensalTO> listasTO;
 	private ItemListaTO itemTO;
-	private ResumoListaTO resumoTO;
 	private CriarListaMensalTO criarListaTO;
 	private AdicionarItemTO adicionarItemTO;
 	private AlterarItemTO alterarItemTO;
+	private String emailLogado;
 
 	@BeforeEach
 	void setUp() {
 		usuarioId = UUID.randomUUID();
 		listaId = UUID.randomUUID();
 		itemId = UUID.randomUUID();
+		emailLogado = "usuario@teste.com";
 
 		// ListaMensalTO
 		listaMensalTO = new ListaMensalTO();
@@ -59,9 +69,10 @@ class ListaMensalControllerTest {
 		listaMensalTO.setUsuarioId(usuarioId);
 		listaMensalTO.setAno(LocalDateTime.now().getYear());
 		listaMensalTO.setMes(LocalDateTime.now().getMonthValue());
+		listaMensalTO.setDescricao("Compras do Mês");
 
 		// Lista de listas
-		listasTO = Arrays.asList(listaMensalTO);
+		listasTO = Collections.singletonList(listaMensalTO);
 
 		// ItemTO
 		itemTO = new ItemListaTO();
@@ -71,20 +82,10 @@ class ListaMensalControllerTest {
 		itemTO.setValorUnitario(BigDecimal.valueOf(10.00));
 		itemTO.setValorTotal(BigDecimal.valueOf(20.00));
 
-		// Criar uma ListaMensal para construir o ResumoListaTO
-		ListaMensal listaMensal = new ListaMensal();
-		listaMensal.setId(listaId);
-
-		ItemLista itemLista = new ItemLista();
-		itemLista.setValorTotal(BigDecimal.valueOf(20.00));
-		listaMensal.setItens(Arrays.asList(itemLista));
-
-		// Criar ResumoListaTO usando o construtor que recebe ListaMensal
-		resumoTO = new ResumoListaTO(listaMensal);
-
 		// Request TOs
 		criarListaTO = new CriarListaMensalTO();
 		criarListaTO.setUsuarioId(usuarioId);
+		criarListaTO.setDescricao("Compras do Mês");
 
 		adicionarItemTO = new AdicionarItemTO();
 		adicionarItemTO.setNomeProduto("Novo Produto");
@@ -97,11 +98,18 @@ class ListaMensalControllerTest {
 		alterarItemTO.setValorUnitario(BigDecimal.valueOf(15.00));
 	}
 
+	private void mockSecurityContext() {
+		SecurityContextHolder.setContext(securityContext);
+		when(securityContext.getAuthentication()).thenReturn(authentication);
+		when(authentication.getName()).thenReturn(emailLogado);
+	}
+
 	@Test
 	@DisplayName("Deve criar lista mensal com sucesso")
 	void deveCriarListaMensalComSucesso() {
 		// Arrange
-		when(listaMensalService.criarListaMensal(usuarioId)).thenReturn(listaMensalTO);
+		mockSecurityContext();
+		when(listaMensalService.criarListaMensal(emailLogado, criarListaTO)).thenReturn(listaMensalTO);
 
 		// Act
 		ResponseEntity<ListaMensalTO> response = listaMensalController.criar(criarListaTO);
@@ -109,17 +117,19 @@ class ListaMensalControllerTest {
 		// Assert
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(response.getBody()).isNotNull();
-		assertThat(response.getBody().getIdLista()).isEqualTo(listaId);  // Usando getIdLista
+		assertThat(response.getBody().getIdLista()).isEqualTo(listaId);
 		assertThat(response.getBody().getUsuarioId()).isEqualTo(usuarioId);
+		assertThat(response.getBody().getDescricao()).isEqualTo("Compras do Mês");
 
-		verify(listaMensalService, times(1)).criarListaMensal(usuarioId);
+		verify(listaMensalService, times(1)).criarListaMensal(emailLogado, criarListaTO);
 	}
 
 	@Test
 	@DisplayName("Deve retornar lista quando ID existe")
 	void deveRetornarListaQuandoIdExiste() {
 		// Arrange
-		when(listaMensalService.getPorId(listaId)).thenReturn(listaMensalTO);
+		mockSecurityContext();
+		when(listaMensalService.getPorId(emailLogado, listaId)).thenReturn(listaMensalTO);
 
 		// Act
 		ResponseEntity<ListaMensalTO> response = listaMensalController.getListaPorId(listaId);
@@ -129,14 +139,15 @@ class ListaMensalControllerTest {
 		assertThat(response.getBody()).isNotNull();
 		assertThat(response.getBody().getIdLista()).isEqualTo(listaId);
 
-		verify(listaMensalService, times(1)).getPorId(listaId);
+		verify(listaMensalService, times(1)).getPorId(emailLogado, listaId);
 	}
 
 	@Test
 	@DisplayName("Deve lançar exceção quando lista não existe")
 	void deveLancarExcecaoQuandoListaNaoExiste() {
 		// Arrange
-		when(listaMensalService.getPorId(listaId))
+		mockSecurityContext();
+		when(listaMensalService.getPorId(emailLogado, listaId))
 				.thenThrow(new ResourceNotFoundException("Lista nao encontrada"));
 
 		// Act & Assert
@@ -144,14 +155,15 @@ class ListaMensalControllerTest {
 				.isInstanceOf(ResourceNotFoundException.class)
 				.hasMessage("Lista nao encontrada");
 
-		verify(listaMensalService, times(1)).getPorId(listaId);
+		verify(listaMensalService, times(1)).getPorId(emailLogado, listaId);
 	}
 
 	@Test
 	@DisplayName("Deve retornar listas do usuário")
 	void deveRetornarListasDoUsuario() {
 		// Arrange
-		when(listaMensalService.getPorUsuarioId(usuarioId)).thenReturn(listasTO);
+		mockSecurityContext();
+		when(listaMensalService.getPorUsuarioId(emailLogado, usuarioId)).thenReturn(listasTO);
 
 		// Act
 		ResponseEntity<List<ListaMensalTO>> response = listaMensalController.getListaPorUsuarioId(usuarioId);
@@ -161,13 +173,33 @@ class ListaMensalControllerTest {
 		assertThat(response.getBody()).hasSize(1);
 		assertThat(response.getBody().get(0).getIdLista()).isEqualTo(listaId);
 
-		verify(listaMensalService, times(1)).getPorUsuarioId(usuarioId);
+		verify(listaMensalService, times(1)).getPorUsuarioId(emailLogado, usuarioId);
 	}
+
+	@Test
+	@DisplayName("Deve editar a descrição da lista com sucesso")
+	void deveEditarDescricaoDaListaComSucesso() {
+		// Arrange
+		mockSecurityContext();
+		String novaDescricao = "Nova Descrição";
+		when(listaMensalService.editarDescricaoLista(emailLogado, novaDescricao, listaId)).thenReturn(listaMensalTO);
+
+		// Act
+		ResponseEntity<ListaMensalTO> response = listaMensalController.editarLista(listaId, novaDescricao);
+
+		// Assert
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(response.getBody()).isNotNull();
+
+		verify(listaMensalService, times(1)).editarDescricaoLista(emailLogado, novaDescricao, listaId);
+	}
+
 	@Test
 	@DisplayName("Deve deletar lista com sucesso")
 	void deveDeletarListaComSucesso() {
 		// Arrange
-		doNothing().when(listaMensalService).deletarLista(listaId);
+		mockSecurityContext();
+		doNothing().when(listaMensalService).deletarLista(emailLogado, listaId);
 
 		// Act
 		ResponseEntity<Void> response = listaMensalController.deletar(listaId);
@@ -176,13 +208,15 @@ class ListaMensalControllerTest {
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 		assertThat(response.getBody()).isNull();
 
-		verify(listaMensalService, times(1)).deletarLista(listaId);
+		verify(listaMensalService, times(1)).deletarLista(emailLogado, listaId);
 	}
+
 	@Test
 	@DisplayName("Deve adicionar item com sucesso")
 	void deveAdicionarItemComSucesso() {
 		// Arrange
-		when(listaMensalService.adicionarItem(listaId, adicionarItemTO)).thenReturn(itemTO);
+		mockSecurityContext();
+		when(listaMensalService.adicionarItem(emailLogado, listaId, adicionarItemTO)).thenReturn(itemTO);
 
 		// Act
 		ResponseEntity<ItemListaTO> response = listaMensalController.adicionarItem(listaId, adicionarItemTO);
@@ -192,29 +226,31 @@ class ListaMensalControllerTest {
 		assertThat(response.getBody()).isNotNull();
 		assertThat(response.getBody().getNomeProduto()).isEqualTo("Produto Teste");
 
-		verify(listaMensalService, times(1)).adicionarItem(listaId, adicionarItemTO);
+		verify(listaMensalService, times(1)).adicionarItem(emailLogado, listaId, adicionarItemTO);
 	}
 
 	@Test
 	@DisplayName("Deve lançar exceção ao adicionar item com dados inválidos")
 	void deveLancarExcecaoAoAdicionarItemComDadosInvalidos() {
 		// Arrange
+		mockSecurityContext();
 		adicionarItemTO.setQuantidade(0);
-		when(listaMensalService.adicionarItem(listaId, adicionarItemTO))
+		when(listaMensalService.adicionarItem(emailLogado, listaId, adicionarItemTO))
 				.thenThrow(new IllegalArgumentException("Quantidade deve ser maior que 0"));
 
 		// Act & Assert
 		assertThatThrownBy(() -> listaMensalController.adicionarItem(listaId, adicionarItemTO))
 				.isInstanceOf(IllegalArgumentException.class);
 
-		verify(listaMensalService, times(1)).adicionarItem(listaId, adicionarItemTO);
+		verify(listaMensalService, times(1)).adicionarItem(emailLogado, listaId, adicionarItemTO);
 	}
 
 	@Test
 	@DisplayName("Deve alterar item com sucesso")
 	void deveAlterarItemComSucesso() {
 		// Arrange
-		when(listaMensalService.alterarItem(itemId, alterarItemTO)).thenReturn(itemTO);
+		mockSecurityContext();
+		when(listaMensalService.alterarItem(emailLogado, itemId, alterarItemTO)).thenReturn(itemTO);
 
 		// Act
 		ResponseEntity<ItemListaTO> response = listaMensalController.alterarItem(itemId, alterarItemTO);
@@ -223,14 +259,15 @@ class ListaMensalControllerTest {
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(response.getBody()).isNotNull();
 
-		verify(listaMensalService, times(1)).alterarItem(itemId, alterarItemTO);
+		verify(listaMensalService, times(1)).alterarItem(emailLogado, itemId, alterarItemTO);
 	}
 
 	@Test
 	@DisplayName("Deve lançar exceção ao alterar item não existente")
 	void deveLancarExcecaoAoAlterarItemNaoExistente() {
 		// Arrange
-		when(listaMensalService.alterarItem(itemId, alterarItemTO))
+		mockSecurityContext();
+		when(listaMensalService.alterarItem(emailLogado, itemId, alterarItemTO))
 				.thenThrow(new ResourceNotFoundException("Item nao encontrado"));
 
 		// Act & Assert
@@ -238,14 +275,15 @@ class ListaMensalControllerTest {
 				.isInstanceOf(ResourceNotFoundException.class)
 				.hasMessage("Item nao encontrado");
 
-		verify(listaMensalService, times(1)).alterarItem(itemId, alterarItemTO);
+		verify(listaMensalService, times(1)).alterarItem(emailLogado, itemId, alterarItemTO);
 	}
 
 	@Test
 	@DisplayName("Deve deletar item com sucesso")
 	void deveDeletarItemComSucesso() {
 		// Arrange
-		doNothing().when(listaMensalService).deletarItem(itemId);
+		mockSecurityContext();
+		doNothing().when(listaMensalService).deletarItem(emailLogado, itemId);
 
 		// Act
 		ResponseEntity<Void> response = listaMensalController.deletarItem(itemId);
@@ -254,23 +292,24 @@ class ListaMensalControllerTest {
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 		assertThat(response.getBody()).isNull();
 
-		verify(listaMensalService, times(1)).deletarItem(itemId);
+		verify(listaMensalService, times(1)).deletarItem(emailLogado, itemId);
 	}
 
 	@Test
 	@DisplayName("Deve retornar resumo da lista com sucesso")
 	void deveRetornarResumoListaComSucesso() {
 		// Arrange - criar a ListaMensal para o resumo
+		mockSecurityContext();
 		ListaMensal listaMensal = new ListaMensal();
 		listaMensal.setId(listaId);
 
 		ItemLista itemLista = new ItemLista();
 		itemLista.setValorTotal(BigDecimal.valueOf(20.00));
-		listaMensal.setItens(Arrays.asList(itemLista));
+		listaMensal.setItens(Collections.singletonList(itemLista));
 
 		ResumoListaTO resumoTO = new ResumoListaTO(listaMensal);
 
-		when(listaMensalService.getResumoLista(listaId)).thenReturn(resumoTO);
+		when(listaMensalService.getResumoLista(emailLogado, listaId)).thenReturn(resumoTO);
 
 		// Act
 		ResponseEntity<ResumoListaTO> response = listaMensalController.getResumoLista(listaId);
@@ -281,14 +320,15 @@ class ListaMensalControllerTest {
 		assertThat(response.getBody().getTotalItens()).isEqualTo(1);
 		assertThat(response.getBody().getValorTotal()).isEqualTo(BigDecimal.valueOf(20.00));
 
-		verify(listaMensalService, times(1)).getResumoLista(listaId);
+		verify(listaMensalService, times(1)).getResumoLista(emailLogado, listaId);
 	}
 
 	@Test
 	@DisplayName("Deve lançar exceção ao buscar resumo de lista não existente")
 	void deveLancarExcecaoAoBuscarResumoListaNaoExistente() {
 		// Arrange
-		when(listaMensalService.getResumoLista(listaId))
+		mockSecurityContext();
+		when(listaMensalService.getResumoLista(emailLogado, listaId))
 				.thenThrow(new ResourceNotFoundException("Lista nao encontrada"));
 
 		// Act & Assert
@@ -296,6 +336,6 @@ class ListaMensalControllerTest {
 				.isInstanceOf(ResourceNotFoundException.class)
 				.hasMessage("Lista nao encontrada");
 
-		verify(listaMensalService, times(1)).getResumoLista(listaId);
+		verify(listaMensalService, times(1)).getResumoLista(emailLogado, listaId);
 	}
 }

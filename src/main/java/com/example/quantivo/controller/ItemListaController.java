@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +27,8 @@ public class ItemListaController {
 			throw new IllegalArgumentException("ID da lista não pode ser nulo");
 		}
 
-		return ResponseEntity.ok(itemListaService.getItens(idLista));
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		return ResponseEntity.ok(itemListaService.getItens(emailLogado, idLista));
 	}
 }
+

@@ -25,20 +25,29 @@ public class UsuarioService {
 	@Autowired private PasswordEncoder passwordEncoder;
 
 	@Transactional
-	public Page<UsuarioTO> buscarAllUsuarios(Pageable pageable){
-		Page<Usuario> usuario = usuarioRepository.findAll(pageable);
-		return usuario.map(UsuarioTO::new);
+	public Page<UsuarioTO> buscarAllUsuarios(String emailLogado, Pageable pageable){
+		throw new BusinessException("Acesso negado. Não é permitido listar todos os usuários.");
 	}
 
 	@Transactional
-	public UsuarioTO buscarPorEmail(String email){
-		Usuario usuario = usuarioRepository.findByEmail(email).get();
+	public UsuarioTO buscarPorEmail(String emailLogado, String email){
+		if (!emailLogado.equals(email)) {
+			throw new BusinessException("Acesso negado. Você não tem permissão para visualizar este usuário.");
+		}
+		Usuario usuario = usuarioRepository.findByEmail(email)
+				.orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 		return new UsuarioTO(usuario);
 	}
 
 	@Transactional
-	public UsuarioTO buscarPorId(UUID id){
-		Usuario usuario = usuarioRepository.findById(id).get();
+	public UsuarioTO buscarPorId(String emailLogado, UUID id){
+		Usuario usuario = usuarioRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+		
+		if (!emailLogado.equals(usuario.getEmail())) {
+			throw new BusinessException("Acesso negado. Você não tem permissão para visualizar este usuário.");
+		}
+		
 		return new UsuarioTO(usuario);
 	}
 
@@ -59,22 +68,38 @@ public class UsuarioService {
 	}
 
 	@Transactional
-	public void ativarUsuario(UUID id){
-		Usuario usuario = usuarioRepository.findById(id).get();
+	public void ativarUsuario(String emailLogado, UUID id){
+		Usuario usuario = usuarioRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+		
+		if (!emailLogado.equals(usuario.getEmail())) {
+			throw new BusinessException("Você não tem permissão para alterar o status deste usuário.");
+		}
+		
 		usuario.setAtivo(true);
 		usuarioRepository.save(usuario);
 	}
 
 	@Transactional
-	public void desativarUsuario(UUID id){
-		Usuario usuario = usuarioRepository.findById(id).get();
+	public void desativarUsuario(String emailLogado, UUID id){
+		Usuario usuario = usuarioRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+		
+		if (!emailLogado.equals(usuario.getEmail())) {
+			throw new BusinessException("Você não tem permissão para alterar o status deste usuário.");
+		}
+		
 		usuario.setAtivo(false);
 		usuarioRepository.save(usuario);
 	}
 
 	@Transactional
-	public void alterarSenha(String email, String senhaAtual, String senhaNova) {
-		Usuario usuario = usuarioRepository.findByEmail(email)
+	public void alterarSenha(String emailLogado, String emailAlvo, String senhaAtual, String senhaNova) {
+		if (!emailLogado.equals(emailAlvo)) {
+			throw new BusinessException("Você não tem permissão para alterar a senha deste usuário.");
+		}
+
+		Usuario usuario = usuarioRepository.findByEmail(emailAlvo)
 				.orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
 		if (!passwordEncoder.matches(senhaAtual, usuario.getSenha())) {
@@ -86,8 +111,14 @@ public class UsuarioService {
 	}
 
 	@Transactional
-	public void excluirUsuario(UUID id){
-		Usuario usuario = usuarioRepository.findById(id).get();
+	public void excluirUsuario(String emailLogado, UUID id){
+		Usuario usuario = usuarioRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+		
+		if (!emailLogado.equals(usuario.getEmail())) {
+			throw new BusinessException("Você não tem permissão para excluir este usuário.");
+		}
+
 		usuario.setAtivo(false);
 		usuarioRepository.save(usuario);
 	}

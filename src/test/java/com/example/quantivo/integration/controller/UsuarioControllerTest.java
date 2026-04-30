@@ -1,9 +1,7 @@
 package com.example.quantivo.integration.controller;
 
-
 import com.example.quantivo.controller.UsuarioController;
 import com.example.quantivo.to.AlterarSenhaTO;
-import com.example.quantivo.to.UsuarioCreateTO;
 import com.example.quantivo.to.UsuarioTO;
 import com.example.quantivo.exception.BusinessException;
 import com.example.quantivo.exception.ResourceNotFoundException;
@@ -21,15 +19,17 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,21 +39,27 @@ class UsuarioControllerTest {
 	@Mock
 	private UsuarioService usuarioService;
 
+	@Mock
+	private SecurityContext securityContext;
+
+	@Mock
+	private Authentication authentication;
+
 	@InjectMocks
 	private UsuarioController usuarioController;
 
 	private UUID usuarioId;
 	private String email;
 	private UsuarioTO usuarioTO;
-	private UsuarioCreateTO usuarioCreateTO;
 	private AlterarSenhaTO alterarSenhaTO;
 	private Pageable pageable;
-	private Page<UsuarioTO> page;
+	private String emailLogado;
 
 	@BeforeEach
 	void setUp() {
 		usuarioId = UUID.randomUUID();
 		email = "usuario@teste.com";
+		emailLogado = "usuario@teste.com";
 
 		// UsuarioTO
 		usuarioTO = new UsuarioTO();
@@ -62,218 +68,198 @@ class UsuarioControllerTest {
 		usuarioTO.setAtivo(true);
 		usuarioTO.setDataCriacao(LocalDateTime.now());
 
-		// UsuarioCreateTO
-		usuarioCreateTO = new UsuarioCreateTO();
-		usuarioCreateTO.setEmail("novo@teste.com");
-		usuarioCreateTO.setSenha("senha123");
-
 		// AlterarSenhaTO
 		alterarSenhaTO = new AlterarSenhaTO();
 		alterarSenhaTO.setSenhaAtual("senha123");
 		alterarSenhaTO.setSenhaNova("novaSenha456");
 
-		// Pageable e Page
+		// Pageable
 		pageable = PageRequest.of(0, 10);
-		List<UsuarioTO> usuarios = Arrays.asList(usuarioTO);
-		page = new PageImpl<>(usuarios, pageable, 1);
+	}
+
+	private void mockSecurityContext() {
+		SecurityContextHolder.setContext(securityContext);
+		when(securityContext.getAuthentication()).thenReturn(authentication);
+		when(authentication.getName()).thenReturn(emailLogado);
 	}
 
 	@Test
-	@DisplayName("Deve retornar página de usuários com sucesso")
-	void deveRetornarPaginaDeUsuariosComSucesso() {
+	@DisplayName("Deve lançar exceção ao buscar todos os usuários")
+	void deveLancarExcecaoAoBuscarTodosUsuarios() {
 		// Arrange
-		when(usuarioService.buscarAllUsuarios(pageable)).thenReturn(page);
+		mockSecurityContext();
+		when(usuarioService.buscarAllUsuarios(emailLogado, pageable))
+				.thenThrow(new BusinessException("Acesso negado. Não é permitido listar todos os usuários."));
+
+		// Act & Assert
+		assertThatThrownBy(() -> usuarioController.buscarAllUsuarios(pageable))
+				.isInstanceOf(BusinessException.class)
+				.hasMessage("Acesso negado. Não é permitido listar todos os usuários.");
+
+		verify(usuarioService, times(1)).buscarAllUsuarios(emailLogado, pageable);
+	}
+
+	@Test
+	@DisplayName("Deve retornar usuário quando email existe e pertence ao usuário logado")
+	void deveRetornarUsuarioQuandoEmailPertenceAoLogado() {
+		// Arrange
+		mockSecurityContext();
+		when(usuarioService.buscarPorEmail(emailLogado, email)).thenReturn(usuarioTO);
 
 		// Act
-		ResponseEntity<Page<UsuarioTO>> response = usuarioController.buscarAllUsuarios(pageable);
+		ResponseEntity<UsuarioTO> response = usuarioController.buscarPorEmail(email);
 
 		// Assert
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(response.getBody()).isNotNull();
-		assertThat(response.getBody().getContent()).hasSize(1);
-		assertThat(response.getBody().getContent().get(0).getEmail()).isEqualTo(email);
+		assertThat(response.getBody().getId()).isEqualTo(usuarioId);
 
-		verify(usuarioService, times(1)).buscarAllUsuarios(pageable);
+		verify(usuarioService, times(1)).buscarPorEmail(emailLogado, email);
 	}
 
 	@Test
-	@DisplayName("Deve retornar usuário quando email existe")
-	void deveRetornarUsuarioQuandoEmailExiste() {
+	@DisplayName("Deve lançar exceção ao buscar email de outro usuário")
+	void deveLancarExcecaoAoBuscarEmailDeOutroUsuario() {
 		// Arrange
-		when(usuarioService.buscarPorEmail(email)).thenReturn(usuarioTO);
-
-		// Act
-		UsuarioTO response = usuarioController.buscarPorEmail(email);
-
-		// Assert
-		assertThat(response).isNotNull();
-		assertThat(response.getId()).isEqualTo(usuarioId);
-		assertThat(response.getEmail()).isEqualTo(email);
-
-		verify(usuarioService, times(1)).buscarPorEmail(email);
-	}
-
-	@Test
-	@DisplayName("Deve lançar exceção quando email não existe")
-	void deveLancarExcecaoQuandoEmailNaoExiste() {
-		// Arrange
-		String emailNaoExistente = "naoexiste@teste.com";
-		when(usuarioService.buscarPorEmail(emailNaoExistente))
-				.thenThrow(new ResourceNotFoundException("Usuário não encontrado"));
+		mockSecurityContext();
+		String outroEmail = "outro@teste.com";
+		when(usuarioService.buscarPorEmail(emailLogado, outroEmail))
+				.thenThrow(new BusinessException("Acesso negado. Você não tem permissão para visualizar este usuário."));
 
 		// Act & Assert
-		assertThatThrownBy(() -> usuarioController.buscarPorEmail(emailNaoExistente))
-				.isInstanceOf(ResourceNotFoundException.class)
-				.hasMessage("Usuário não encontrado");
-
-		verify(usuarioService, times(1)).buscarPorEmail(emailNaoExistente);
-	}
-
-	@Test
-	@DisplayName("Deve retornar usuário quando ID existe")
-	void deveRetornarUsuarioQuandoIdExiste() {
-		// Arrange
-		when(usuarioService.buscarPorId(usuarioId)).thenReturn(usuarioTO);
-
-		// Act
-		UsuarioTO response = usuarioController.buscarPorId(usuarioId);
-
-		// Assert
-		assertThat(response).isNotNull();
-		assertThat(response.getId()).isEqualTo(usuarioId);
-		assertThat(response.getEmail()).isEqualTo(email);
-
-		verify(usuarioService, times(1)).buscarPorId(usuarioId);
-	}
-
-	@Test
-	@DisplayName("Deve lançar exceção quando ID não existe")
-	void deveLancarExcecaoQuandoIdNaoExiste() {
-		// Arrange
-		UUID idInvalido = UUID.randomUUID();
-		when(usuarioService.buscarPorId(idInvalido))
-				.thenThrow(new ResourceNotFoundException("Usuário não encontrado"));
-
-		// Act & Assert
-		assertThatThrownBy(() -> usuarioController.buscarPorId(idInvalido))
-				.isInstanceOf(ResourceNotFoundException.class)
-				.hasMessage("Usuário não encontrado");
-
-		verify(usuarioService, times(1)).buscarPorId(idInvalido);
-	}
-
-	@Test
-	@DisplayName("Deve criar usuário com sucesso")
-	void deveCriarUsuarioComSucesso() {
-		// Arrange
-		when(usuarioService.criarUsuario(usuarioCreateTO)).thenReturn(usuarioTO);
-
-		// Act
-		UsuarioTO response = usuarioController.criarUsuario(usuarioCreateTO);
-
-		// Assert
-		assertThat(response).isNotNull();
-		assertThat(response.getId()).isEqualTo(usuarioId);
-		assertThat(response.getEmail()).isEqualTo(email);
-
-		verify(usuarioService, times(1)).criarUsuario(usuarioCreateTO);
-	}
-
-	@Test
-	@DisplayName("Deve lançar exceção ao criar usuário com email já existente")
-	void deveLancarExcecaoAoCriarUsuarioComEmailExistente() {
-		// Arrange
-		when(usuarioService.criarUsuario(usuarioCreateTO))
-				.thenThrow(new BusinessException("Email ja cadastrado"));
-
-		// Act & Assert
-		assertThatThrownBy(() -> usuarioController.criarUsuario(usuarioCreateTO))
+		assertThatThrownBy(() -> usuarioController.buscarPorEmail(outroEmail))
 				.isInstanceOf(BusinessException.class)
-				.hasMessage("Email ja cadastrado");
+				.hasMessage("Acesso negado. Você não tem permissão para visualizar este usuário.");
 
-		verify(usuarioService, times(1)).criarUsuario(usuarioCreateTO);
+		verify(usuarioService, times(1)).buscarPorEmail(emailLogado, outroEmail);
+	}
+
+	@Test
+	@DisplayName("Deve retornar usuário quando ID existe e pertence ao usuário logado")
+	void deveRetornarUsuarioQuandoIdPertenceAoLogado() {
+		// Arrange
+		mockSecurityContext();
+		when(usuarioService.buscarPorId(emailLogado, usuarioId)).thenReturn(usuarioTO);
+
+		// Act
+		ResponseEntity<UsuarioTO> response = usuarioController.buscarPorId(usuarioId);
+
+		// Assert
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(response.getBody()).isNotNull();
+		assertThat(response.getBody().getId()).isEqualTo(usuarioId);
+
+		verify(usuarioService, times(1)).buscarPorId(emailLogado, usuarioId);
+	}
+
+	@Test
+	@DisplayName("Deve lançar exceção ao buscar ID de outro usuário")
+	void deveLancarExcecaoAoBuscarIdDeOutroUsuario() {
+		// Arrange
+		mockSecurityContext();
+		UUID outroId = UUID.randomUUID();
+		when(usuarioService.buscarPorId(emailLogado, outroId))
+				.thenThrow(new BusinessException("Acesso negado. Você não tem permissão para visualizar este usuário."));
+
+		// Act & Assert
+		assertThatThrownBy(() -> usuarioController.buscarPorId(outroId))
+				.isInstanceOf(BusinessException.class)
+				.hasMessage("Acesso negado. Você não tem permissão para visualizar este usuário.");
+
+		verify(usuarioService, times(1)).buscarPorId(emailLogado, outroId);
 	}
 
 	@Test
 	@DisplayName("Deve alterar senha com sucesso")
 	void deveAlterarSenhaComSucesso() {
 		// Arrange
-		doNothing().when(usuarioService).alterarSenha(email, alterarSenhaTO.getSenhaAtual(), alterarSenhaTO.getSenhaNova());
+		mockSecurityContext();
+		doNothing().when(usuarioService).alterarSenha(emailLogado, email, alterarSenhaTO.getSenhaAtual(), alterarSenhaTO.getSenhaNova());
 
 		// Act
-		usuarioController.alterarSenha(email, alterarSenhaTO);
+		ResponseEntity<Void> response = usuarioController.alterarSenha(email, alterarSenhaTO);
 
 		// Assert
-		verify(usuarioService, times(1)).alterarSenha(email, alterarSenhaTO.getSenhaAtual(), alterarSenhaTO.getSenhaNova());
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		verify(usuarioService, times(1)).alterarSenha(emailLogado, email, alterarSenhaTO.getSenhaAtual(), alterarSenhaTO.getSenhaNova());
 	}
 
 	@Test
-	@DisplayName("Deve lançar exceção ao alterar senha com credenciais inválidas")
-	void deveLancarExcecaoAoAlterarSenhaComCredenciaisInvalidas() {
+	@DisplayName("Deve lançar exceção ao tentar alterar senha de outro usuário")
+	void deveLancarExcecaoAoAlterarSenhaDeOutroUsuario() {
 		// Arrange
-		doThrow(new BusinessException("Senha atual incorreta"))
-				.when(usuarioService).alterarSenha(email, alterarSenhaTO.getSenhaAtual(), alterarSenhaTO.getSenhaNova());
+		mockSecurityContext();
+		String outroEmail = "outro@teste.com";
+		doThrow(new BusinessException("Você não tem permissão para alterar a senha deste usuário."))
+				.when(usuarioService).alterarSenha(emailLogado, outroEmail, alterarSenhaTO.getSenhaAtual(), alterarSenhaTO.getSenhaNova());
 
 		// Act & Assert
-		assertThatThrownBy(() -> usuarioController.alterarSenha(email, alterarSenhaTO))
+		assertThatThrownBy(() -> usuarioController.alterarSenha(outroEmail, alterarSenhaTO))
 				.isInstanceOf(BusinessException.class)
-				.hasMessage("Senha atual incorreta");
+				.hasMessage("Você não tem permissão para alterar a senha deste usuário.");
 
-		verify(usuarioService, times(1)).alterarSenha(email, alterarSenhaTO.getSenhaAtual(), alterarSenhaTO.getSenhaNova());
+		verify(usuarioService, times(1)).alterarSenha(emailLogado, outroEmail, alterarSenhaTO.getSenhaAtual(), alterarSenhaTO.getSenhaNova());
 	}
 
 	@Test
 	@DisplayName("Deve excluir usuário com sucesso")
 	void deveExcluirUsuarioComSucesso() {
 		// Arrange
-		doNothing().when(usuarioService).excluirUsuario(usuarioId);
+		mockSecurityContext();
+		doNothing().when(usuarioService).excluirUsuario(emailLogado, usuarioId);
 
 		// Act
-		usuarioController.excluirUsuario(usuarioId);
+		ResponseEntity<Void> response = usuarioController.excluirUsuario(usuarioId);
 
 		// Assert
-		verify(usuarioService, times(1)).excluirUsuario(usuarioId);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		verify(usuarioService, times(1)).excluirUsuario(emailLogado, usuarioId);
 	}
 
 	@Test
-	@DisplayName("Deve lançar exceção ao excluir usuário inexistente")
-	void deveLancarExcecaoAoExcluirUsuarioInexistente() {
+	@DisplayName("Deve lançar exceção ao tentar excluir outro usuário")
+	void deveLancarExcecaoAoExcluirOutroUsuario() {
 		// Arrange
-		UUID idInvalido = UUID.randomUUID();
-		doThrow(new ResourceNotFoundException("Usuário não encontrado"))
-				.when(usuarioService).excluirUsuario(idInvalido);
+		mockSecurityContext();
+		UUID outroId = UUID.randomUUID();
+		doThrow(new BusinessException("Você não tem permissão para excluir este usuário."))
+				.when(usuarioService).excluirUsuario(emailLogado, outroId);
 
 		// Act & Assert
-		assertThatThrownBy(() -> usuarioController.excluirUsuario(idInvalido))
-				.isInstanceOf(ResourceNotFoundException.class)
-				.hasMessage("Usuário não encontrado");
+		assertThatThrownBy(() -> usuarioController.excluirUsuario(outroId))
+				.isInstanceOf(BusinessException.class)
+				.hasMessage("Você não tem permissão para excluir este usuário.");
 
-		verify(usuarioService, times(1)).excluirUsuario(idInvalido);
+		verify(usuarioService, times(1)).excluirUsuario(emailLogado, outroId);
 	}
 
 	@Test
 	@DisplayName("Deve ativar usuário com sucesso")
 	void deveAtivarUsuarioComSucesso() {
 		// Arrange
-		doNothing().when(usuarioService).ativarUsuario(usuarioId);
+		mockSecurityContext();
+		doNothing().when(usuarioService).ativarUsuario(emailLogado, usuarioId);
 
 		// Act
-		usuarioController.ativarUsuario(usuarioId);
+		ResponseEntity<Void> response = usuarioController.ativarUsuario(usuarioId);
 
 		// Assert
-		verify(usuarioService, times(1)).ativarUsuario(usuarioId);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		verify(usuarioService, times(1)).ativarUsuario(emailLogado, usuarioId);
 	}
 
 	@Test
 	@DisplayName("Deve desativar usuário com sucesso")
 	void deveDesativarUsuarioComSucesso() {
 		// Arrange
-		doNothing().when(usuarioService).desativarUsuario(usuarioId);
+		mockSecurityContext();
+		doNothing().when(usuarioService).desativarUsuario(emailLogado, usuarioId);
 
 		// Act
-		usuarioController.desativarUsuario(usuarioId);
+		ResponseEntity<Void> response = usuarioController.desativarUsuario(usuarioId);
 
 		// Assert
-		verify(usuarioService, times(1)).desativarUsuario(usuarioId);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		verify(usuarioService, times(1)).desativarUsuario(emailLogado, usuarioId);
 	}
 }

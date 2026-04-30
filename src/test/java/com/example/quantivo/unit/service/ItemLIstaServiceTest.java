@@ -2,6 +2,8 @@ package com.example.quantivo.unit.service;
 
 import com.example.quantivo.entity.ItemLista;
 import com.example.quantivo.entity.ListaMensal;
+import com.example.quantivo.entity.Usuario;
+import com.example.quantivo.exception.BusinessException;
 import com.example.quantivo.exception.ResourceNotFoundException;
 import com.example.quantivo.repository.ItemListaReporitory;
 import com.example.quantivo.repository.ListaMensalRepository;
@@ -45,13 +47,20 @@ class ItemListaServiceTest {
 	private ListaMensal listaMensal;
 	private ItemLista item1;
 	private ItemLista item2;
+	private String emailLogado;
+	private Usuario usuario;
 
 	@BeforeEach
 	void setUp() {
 		listaId = UUID.randomUUID();
+		emailLogado = "usuario@teste.com";
+
+		usuario = new Usuario();
+		usuario.setEmail(emailLogado);
 
 		listaMensal = new ListaMensal();
 		listaMensal.setId(listaId);
+		listaMensal.setUsuario(usuario);
 		listaMensal.setDataCriacao(LocalDateTime.now());
 
 		item1 = new ItemLista();
@@ -83,7 +92,7 @@ class ItemListaServiceTest {
 		when(itemListaReporitory.findByListaMensalId(listaId))
 				.thenReturn(itensEsperados);
 
-		List<ItemListaTO> resultado = itemListaService.getItens(listaId);
+		List<ItemListaTO> resultado = itemListaService.getItens(emailLogado, listaId);
 
 		assertThat(resultado).hasSize(2);
 		assertThat(resultado.get(0).getNomeProduto()).isEqualTo("Produto 1");
@@ -101,7 +110,7 @@ class ItemListaServiceTest {
 		when(itemListaReporitory.findByListaMensalId(listaId))
 				.thenReturn(Collections.emptyList());
 
-		List<ItemListaTO> resultado = itemListaService.getItens(listaId);
+		List<ItemListaTO> resultado = itemListaService.getItens(emailLogado, listaId);
 
 		assertThat(resultado).isEmpty();
 	}
@@ -112,9 +121,26 @@ class ItemListaServiceTest {
 		when(listaMensalRepository.findById(listaId))
 				.thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> itemListaService.getItens(listaId))
+		assertThatThrownBy(() -> itemListaService.getItens(emailLogado, listaId))
 				.isInstanceOf(ResourceNotFoundException.class)
 				.hasMessage("Lista mensal não encontrada.");
+
+		verify(itemListaReporitory, never()).findByListaMensalId(any());
+	}
+
+	@Test
+	@DisplayName("Deve lançar BusinessException quando acesso for negado")
+	void deveLancarExcecaoQuandoAcessoNegado() {
+		Usuario outroUsuario = new Usuario();
+		outroUsuario.setEmail("outro@teste.com");
+		listaMensal.setUsuario(outroUsuario);
+
+		when(listaMensalRepository.findById(listaId))
+				.thenReturn(Optional.of(listaMensal));
+
+		assertThatThrownBy(() -> itemListaService.getItens(emailLogado, listaId))
+				.isInstanceOf(BusinessException.class)
+				.hasMessage("Acesso negado. A lista pertence a outro usuário.");
 
 		verify(itemListaReporitory, never()).findByListaMensalId(any());
 	}
@@ -129,7 +155,7 @@ class ItemListaServiceTest {
 		when(itemListaReporitory.findByListaMensalId(listaId))
 				.thenReturn(itens);
 
-		List<ItemListaTO> resultado = itemListaService.getItens(listaId);
+		List<ItemListaTO> resultado = itemListaService.getItens(emailLogado, listaId);
 		ItemListaTO to = resultado.get(0);
 
 		assertThat(to.getId()).isEqualTo(item1.getId());

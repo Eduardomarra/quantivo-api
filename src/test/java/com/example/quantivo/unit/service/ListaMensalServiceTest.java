@@ -49,6 +49,9 @@ class ListaMensalServiceTest {
 	private ListaMensal listaMensal;
 	private ItemLista itemLista;
 	private LocalDateTime agora;
+	private CriarListaMensalTO criarListaMensalTO;
+	private String emailLogado;
+
 
 	@BeforeEach
 	void setUp() {
@@ -56,10 +59,11 @@ class ListaMensalServiceTest {
 		usuarioId = UUID.randomUUID();
 		listaId = UUID.randomUUID();
 		itemId = UUID.randomUUID();
+		emailLogado = "usuario@teste.com";
 
 		usuario = new Usuario();
 		usuario.setId(usuarioId);
-		usuario.setEmail("usuario@teste.com");
+		usuario.setEmail(emailLogado);
 		usuario.setSenha("senha123");
 		usuario.setAtivo(true);
 		usuario.setDataCriacao(agora);
@@ -69,6 +73,7 @@ class ListaMensalServiceTest {
 		listaMensal.setUsuario(usuario);
 		listaMensal.setAno(agora.getYear());
 		listaMensal.setMes(agora.getMonthValue());
+		listaMensal.setDescricao("Lista de Compras do Mês");
 		listaMensal.setDataCriacao(agora);
 		listaMensal.setItens(new ArrayList<>());
 
@@ -82,53 +87,41 @@ class ListaMensalServiceTest {
 		itemLista.setDataCriacao(agora);
 
 		listaMensal.getItens().add(itemLista);
+
+		criarListaMensalTO = new CriarListaMensalTO();
+		criarListaMensalTO.setUsuarioId(usuarioId);
+		criarListaMensalTO.setDescricao("Lista de Compras do Mês");
 	}
 
 	@Test
-	@DisplayName("Deve criar nova lista quando usuário não tem lista no mês")
-	void deveCriarNovaListaQuandoUsuarioNaoTemListaNoMes() {
+	@DisplayName("Deve criar nova lista com sucesso")
+	void deveCriarNovaListaComSucesso() {
 		// Arrange
 		when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
-		when(listaMensalRepository.findByUsuario_IdAndMesAndAno(usuarioId,
-				agora.getMonthValue(), agora.getYear()))
-				.thenReturn(Optional.empty());
 		when(listaMensalRepository.save(any(ListaMensal.class))).thenReturn(listaMensal);
 
 		// Act
-		ListaMensalTO resultado = listaMensalService.criarListaMensal(usuarioId);
+		ListaMensalTO resultado = listaMensalService.criarListaMensal(emailLogado, criarListaMensalTO);
 
 		// Assert
 		assertThat(resultado).isNotNull();
 		assertThat(resultado.getIdLista()).isEqualTo(listaId);
 		assertThat(resultado.getAno()).isEqualTo(agora.getYear());
 		assertThat(resultado.getMes()).isEqualTo(agora.getMonthValue());
+		assertThat(resultado.getDescricao()).isEqualTo("Lista de Compras do Mês");
 
 		verify(usuarioRepository, times(1)).findById(usuarioId);
-		verify(listaMensalRepository, times(1)).findByUsuario_IdAndMesAndAno(usuarioId,
-				agora.getMonthValue(), agora.getYear());
 		verify(listaMensalRepository, times(1)).save(any(ListaMensal.class));
 	}
 
 	@Test
-	@DisplayName("Deve retornar lista existente quando usuário já tem lista no mês")
-	void deveRetornarListaExistenteQuandoUsuarioJaTemLista() {
-		// Arrange
+	@DisplayName("Deve lançar exceção quando criar lista para outro usuário")
+	void deveLancarExcecaoAoCriarListaOutroUsuario() {
 		when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
-		when(listaMensalRepository.findByUsuario_IdAndMesAndAno(usuarioId,
-				agora.getMonthValue(), agora.getYear()))
-				.thenReturn(Optional.of(listaMensal));
-
-		// Act
-		ListaMensalTO resultado = listaMensalService.criarListaMensal(usuarioId);
-
-		// Assert
-		assertThat(resultado).isNotNull();
-		assertThat(resultado.getIdLista()).isEqualTo(listaId);
-
-		verify(usuarioRepository, times(1)).findById(usuarioId);
-		verify(listaMensalRepository, times(1)).findByUsuario_IdAndMesAndAno(usuarioId,
-				agora.getMonthValue(), agora.getYear());
-		verify(listaMensalRepository, never()).save(any(ListaMensal.class));
+		
+		assertThatThrownBy(() -> listaMensalService.criarListaMensal("outro@email.com", criarListaMensalTO))
+				.isInstanceOf(BusinessException.class)
+				.hasMessage("Você não tem permissão para criar uma lista para este usuário.");
 	}
 
 	@Test
@@ -138,11 +131,10 @@ class ListaMensalServiceTest {
 		when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.empty());
 
 		// Act & Assert
-		assertThatThrownBy(() -> listaMensalService.criarListaMensal(usuarioId))
+		assertThatThrownBy(() -> listaMensalService.criarListaMensal(emailLogado, criarListaMensalTO))
 				.isInstanceOf(ResourceNotFoundException.class)
 				.hasMessage("Usuario nao encontrado");
 
-		verify(listaMensalRepository, never()).findByUsuario_IdAndMesAndAno(any(), any(), any());
 		verify(listaMensalRepository, never()).save(any());
 	}
 
@@ -153,14 +145,25 @@ class ListaMensalServiceTest {
 		when(listaMensalRepository.findById(listaId)).thenReturn(Optional.of(listaMensal));
 
 		// Act
-		ListaMensalTO resultado = listaMensalService.getPorId(listaId);
+		ListaMensalTO resultado = listaMensalService.getPorId(emailLogado, listaId);
 
 		// Assert
 		assertThat(resultado).isNotNull();
 		assertThat(resultado.getIdLista()).isEqualTo(listaId);
 		assertThat(resultado.getUsuarioId()).isEqualTo(usuarioId);
+		assertThat(resultado.getDescricao()).isEqualTo("Lista de Compras do Mês");
 
 		verify(listaMensalRepository, times(1)).findById(listaId);
+	}
+
+	@Test
+	@DisplayName("Deve lançar exceção quando acessar lista de outro usuário")
+	void deveLancarExcecaoAoAcessarListaOutroUsuario() {
+		when(listaMensalRepository.findById(listaId)).thenReturn(Optional.of(listaMensal));
+		
+		assertThatThrownBy(() -> listaMensalService.getPorId("outro@email.com", listaId))
+				.isInstanceOf(BusinessException.class)
+				.hasMessage("Acesso negado. A lista pertence a outro usuário.");
 	}
 
 	@Test
@@ -170,7 +173,7 @@ class ListaMensalServiceTest {
 		when(listaMensalRepository.findById(listaId)).thenReturn(Optional.empty());
 
 		// Act & Assert
-		assertThatThrownBy(() -> listaMensalService.getPorId(listaId))
+		assertThatThrownBy(() -> listaMensalService.getPorId(emailLogado, listaId))
 				.isInstanceOf(ResourceNotFoundException.class)
 				.hasMessage("Lista nao encontrada");
 	}
@@ -182,15 +185,17 @@ class ListaMensalServiceTest {
 		Integer mes = agora.getMonthValue();
 		Integer ano = agora.getYear();
 
+		when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
 		when(listaMensalRepository.findByUsuario_IdAndMesAndAno(usuarioId, mes, ano))
 				.thenReturn(Optional.of(listaMensal));
 
 		// Act
-		ListaMensalTO resultado = listaMensalService.getPorUsuarioIdMesAno(usuarioId, mes, ano);
+		ListaMensalTO resultado = listaMensalService.getPorUsuarioIdMesAno(emailLogado, usuarioId, mes, ano);
 
 		// Assert
 		assertThat(resultado).isNotNull();
 		assertThat(resultado.getIdLista()).isEqualTo(listaId);
+		assertThat(resultado.getDescricao()).isEqualTo("Lista de Compras do Mês");
 
 		verify(listaMensalRepository, times(1))
 				.findByUsuario_IdAndMesAndAno(usuarioId, mes, ano);
@@ -202,10 +207,11 @@ class ListaMensalServiceTest {
 		Integer mes = 12;
 		Integer ano = 2025;
 
+		when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
 		when(listaMensalRepository.findByUsuario_IdAndMesAndAno(usuarioId, mes, ano))
 				.thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> listaMensalService.getPorUsuarioIdMesAno(usuarioId, mes, ano))
+		assertThatThrownBy(() -> listaMensalService.getPorUsuarioIdMesAno(emailLogado, usuarioId, mes, ano))
 				.isInstanceOf(ResourceNotFoundException.class)
 				.hasMessage("Lista não encontrada.");
 	}
@@ -214,13 +220,15 @@ class ListaMensalServiceTest {
 	@DisplayName("Deve retornar lista de listas do usuário")
 	void deveRetornarListasDoUsuario() {
 		List<ListaMensal> listas = Arrays.asList(listaMensal);
+		when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
 		when(listaMensalRepository.findByUsuario_Id(usuarioId))
-				.thenReturn(listas);  // Mantém Optional.of()
+				.thenReturn(listas);
 
-		List<ListaMensalTO> resultado = listaMensalService.getPorUsuarioId(usuarioId);
+		List<ListaMensalTO> resultado = listaMensalService.getPorUsuarioId(emailLogado, usuarioId);
 
 		assertThat(resultado).hasSize(1);
 		assertThat(resultado.get(0).getIdLista()).isEqualTo(listaId);
+		assertThat(resultado.get(0).getDescricao()).isEqualTo("Lista de Compras do Mês");
 
 		verify(listaMensalRepository, times(1)).findByUsuario_Id(usuarioId);
 	}
@@ -228,10 +236,11 @@ class ListaMensalServiceTest {
 	@Test
 	@DisplayName("Deve retornar lista vazia quando usuário não tem listas")
 	void deveRetornarListaVaziaQuandoUsuarioSemListas() {
+		when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario));
 		when(listaMensalRepository.findByUsuario_Id(usuarioId))
 				.thenReturn(List.of());
 
-		List<ListaMensalTO> resultado = listaMensalService.getPorUsuarioId(usuarioId);
+		List<ListaMensalTO> resultado = listaMensalService.getPorUsuarioId(emailLogado, usuarioId);
 
 		assertThat(resultado).isEmpty();
 	}
@@ -256,7 +265,7 @@ class ListaMensalServiceTest {
 		when(itemListaReporitory.save(any(ItemLista.class))).thenReturn(novoItem);
 
 		// Act
-		ItemListaTO resultado = listaMensalService.adicionarItem(listaId, to);
+		ItemListaTO resultado = listaMensalService.adicionarItem(emailLogado, listaId, to);
 
 		// Assert
 		assertThat(resultado).isNotNull();
@@ -265,6 +274,17 @@ class ListaMensalServiceTest {
 		assertThat(resultado.getValorTotal()).isEqualTo(BigDecimal.valueOf(75.00));
 
 		verify(itemListaReporitory, times(1)).save(any(ItemLista.class));
+	}
+
+	@Test
+	@DisplayName("Deve lançar exceção ao adicionar item na lista de outro usuário")
+	void deveLancarExcecaoAoAdicionarItemOutroUsuario() {
+		AdicionarItemTO to = new AdicionarItemTO();
+		when(listaMensalRepository.findById(listaId)).thenReturn(Optional.of(listaMensal));
+		
+		assertThatThrownBy(() -> listaMensalService.adicionarItem("outro@email.com", listaId, to))
+				.isInstanceOf(BusinessException.class)
+				.hasMessage("Acesso negado. A lista pertence a outro usuário.");
 	}
 
 	@Test
@@ -278,7 +298,7 @@ class ListaMensalServiceTest {
 		when(listaMensalRepository.findById(listaId)).thenReturn(Optional.of(listaMensal));
 
 		// Act & Assert
-		assertThatThrownBy(() -> listaMensalService.adicionarItem(listaId, to))
+		assertThatThrownBy(() -> listaMensalService.adicionarItem(emailLogado, listaId, to))
 				.isInstanceOf(BusinessException.class)
 				.hasMessage("Quantidade deve ser maior que 0.");
 
@@ -286,19 +306,19 @@ class ListaMensalServiceTest {
 	}
 
 	@Test
-	@DisplayName("Deve lançar exceção quando valor unitário é menor ou igual a zero")
+	@DisplayName("Deve lançar exceção quando valor unitário é menor que zero")
 	void deveLancarExcecaoQuandoValorUnitarioInvalido() {
 		// Arrange
 		AdicionarItemTO to = new AdicionarItemTO();
 		to.setQuantidade(5);
-		to.setValorUnitario(BigDecimal.ZERO);
+		to.setValorUnitario(BigDecimal.valueOf(-1));
 
 		when(listaMensalRepository.findById(listaId)).thenReturn(Optional.of(listaMensal));
 
 		// Act & Assert
-		assertThatThrownBy(() -> listaMensalService.adicionarItem(listaId, to))
+		assertThatThrownBy(() -> listaMensalService.adicionarItem(emailLogado, listaId, to))
 				.isInstanceOf(BusinessException.class)
-				.hasMessage("Valor unitário deve ser maior que 0.");
+				.hasMessage("Valor unitário não pode ser negativo.");
 	}
 
 	@Test
@@ -314,7 +334,7 @@ class ListaMensalServiceTest {
 		when(itemListaReporitory.save(any(ItemLista.class))).thenReturn(itemLista);
 
 		// Act
-		ItemListaTO resultado = listaMensalService.alterarItem(itemId, to);
+		ItemListaTO resultado = listaMensalService.alterarItem(emailLogado, itemId, to);
 
 		// Assert
 		assertThat(resultado).isNotNull();
@@ -327,12 +347,23 @@ class ListaMensalServiceTest {
 	}
 
 	@Test
+	@DisplayName("Deve lançar exceção ao alterar item de outro usuário")
+	void deveLancarExcecaoAoAlterarItemOutroUsuario() {
+		AlterarItemTO to = new AlterarItemTO();
+		when(itemListaReporitory.findById(itemId)).thenReturn(Optional.of(itemLista));
+		
+		assertThatThrownBy(() -> listaMensalService.alterarItem("outro@email.com", itemId, to))
+				.isInstanceOf(BusinessException.class)
+				.hasMessage("Acesso negado. O item pertence a outro usuário.");
+	}
+
+	@Test
 	@DisplayName("Deve lançar exceção quando item não existe ao alterar")
 	void deveLancarExcecaoQuandoItemNaoExisteAoAlterar() {
 		AlterarItemTO to = new AlterarItemTO();
 		when(itemListaReporitory.findById(itemId)).thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> listaMensalService.alterarItem(itemId, to))
+		assertThatThrownBy(() -> listaMensalService.alterarItem(emailLogado, itemId, to))
 				.isInstanceOf(ResourceNotFoundException.class)
 				.hasMessage("Item nao encontrado");
 	}
@@ -340,7 +371,9 @@ class ListaMensalServiceTest {
 	@Test
 	@DisplayName("Deve deletar item com sucesso")
 	void deveDeletarItemComSucesso() {
-		listaMensalService.deletarItem(itemId);
+		when(itemListaReporitory.findById(itemId)).thenReturn(Optional.of(itemLista));
+		
+		listaMensalService.deletarItem(emailLogado, itemId);
 
 		verify(itemListaReporitory, times(1)).deleteById(itemId);
 	}
@@ -348,7 +381,9 @@ class ListaMensalServiceTest {
 	@Test
 	@DisplayName("Deve deletar lista com sucesso")
 	void deveDeletarListaComSucesso() {
-		listaMensalService.deletarLista(listaId);
+		when(listaMensalRepository.findById(listaId)).thenReturn(Optional.of(listaMensal));
+		
+		listaMensalService.deletarLista(emailLogado, listaId);
 
 		verify(listaMensalRepository, times(1)).deleteById(listaId);
 	}
@@ -358,7 +393,7 @@ class ListaMensalServiceTest {
 	void deveRetornarResumoListaComItens() {
 		when(listaMensalRepository.findById(listaId)).thenReturn(Optional.of(listaMensal));
 
-		ResumoListaTO resultado = listaMensalService.getResumoLista(listaId);
+		ResumoListaTO resultado = listaMensalService.getResumoLista(emailLogado, listaId);
 
 		assertThat(resultado).isNotNull();
 		assertThat(resultado.getTotalItens()).isEqualTo(1);
@@ -371,7 +406,7 @@ class ListaMensalServiceTest {
 		listaMensal.setItens(new ArrayList<>());
 		when(listaMensalRepository.findById(listaId)).thenReturn(Optional.of(listaMensal));
 
-		ResumoListaTO resultado = listaMensalService.getResumoLista(listaId);
+		ResumoListaTO resultado = listaMensalService.getResumoLista(emailLogado, listaId);
 
 		assertThat(resultado).isNotNull();
 		assertThat(resultado.getTotalItens()).isZero();
@@ -383,7 +418,7 @@ class ListaMensalServiceTest {
 	void deveLancarExcecaoQuandoListaNaoExisteParaResumo() {
 		when(listaMensalRepository.findById(listaId)).thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> listaMensalService.getResumoLista(listaId))
+		assertThatThrownBy(() -> listaMensalService.getResumoLista(emailLogado, listaId))
 				.isInstanceOf(ResourceNotFoundException.class)
 				.hasMessage("Lista nao encontrada");
 	}

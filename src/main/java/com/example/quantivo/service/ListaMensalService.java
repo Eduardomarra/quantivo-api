@@ -34,9 +34,13 @@ public class ListaMensalService {
 	@Autowired private ItemListaReporitory itemListaReporitory;
 
 	@Transactional
-	public ListaMensalTO criarListaMensal(CriarListaMensalTO to) {
+	public ListaMensalTO criarListaMensal(String emailLogado, CriarListaMensalTO to) {
 		Usuario usuario = usuarioRepository.findById(to.getUsuarioId())
 				.orElseThrow(() -> new ResourceNotFoundException("Usuario nao encontrado"));
+
+		if (!usuario.getEmail().equals(emailLogado)) {
+			throw new BusinessException("Você não tem permissão para criar uma lista para este usuário.");
+		}
 
 		ListaMensal lista = new ListaMensal();
 		lista.setUsuario(usuario);
@@ -49,31 +53,75 @@ public class ListaMensalService {
 	}
 
 	@Transactional
-	public ListaMensalTO getPorId(UUID id) {
-		return new ListaMensalTO(listaMensalRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("Lista nao encontrada")));
-	}
+	public ListaMensalTO getPorId(String emailLogado, UUID id) {
+		ListaMensal lista = listaMensalRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Lista nao encontrada"));
 
-	@Transactional
-	public ListaMensalTO getPorUsuarioIdMesAno(UUID usuarioId, Integer mes, Integer ano) {
-		ListaMensal lista = listaMensalRepository.findByUsuario_IdAndMesAndAno(usuarioId, mes, ano).orElseThrow(() -> new ResourceNotFoundException("Lista não encontrada."));
+		if (!lista.getUsuario().getEmail().equals(emailLogado)) {
+			throw new BusinessException("Acesso negado. A lista pertence a outro usuário.");
+		}
+
 		return new ListaMensalTO(lista);
 	}
 
 	@Transactional
-	public List<ListaMensalTO> getPorUsuarioId(UUID usuarioId) {
+	public ListaMensalTO getPorUsuarioIdMesAno(String emailLogado, UUID usuarioId, Integer mes, Integer ano) {
+		Usuario usuario = usuarioRepository.findById(usuarioId)
+				.orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado."));
+
+		if (!usuario.getEmail().equals(emailLogado)) {
+			throw new BusinessException("Acesso negado.");
+		}
+
+		ListaMensal lista = listaMensalRepository.findByUsuario_IdAndMesAndAno(usuarioId, mes, ano)
+				.orElseThrow(() -> new ResourceNotFoundException("Lista não encontrada."));
+		return new ListaMensalTO(lista);
+	}
+
+	@Transactional
+	public List<ListaMensalTO> getPorUsuarioId(String emailLogado, UUID usuarioId) {
+		Usuario usuario = usuarioRepository.findById(usuarioId)
+				.orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado."));
+
+		if (!usuario.getEmail().equals(emailLogado)) {
+			throw new BusinessException("Acesso negado.");
+		}
+
 		List<ListaMensal> lista = listaMensalRepository.findByUsuario_Id(usuarioId);
 		return lista.stream().map(ListaMensalTO::new).toList();
 	}
 
 	@Transactional
-	public void deletarLista(UUID id) {
+	public ListaMensalTO editarDescricaoLista(String emailLogado, String descricao, UUID id) {
+		ListaMensal lista = listaMensalRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Lista não encontrada."));
+		
+		if (!lista.getUsuario().getEmail().equals(emailLogado)) {
+			throw new BusinessException("Acesso negado. A lista pertence a outro usuário.");
+		}
+
+		lista.setDescricao(descricao);
+		return new ListaMensalTO(listaMensalRepository.save(lista));
+	}
+
+
+	@Transactional
+	public void deletarLista(String emailLogado, UUID id) {
+		ListaMensal lista = listaMensalRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Lista não encontrada."));
+
+		if (!lista.getUsuario().getEmail().equals(emailLogado)) {
+			throw new BusinessException("Acesso negado. A lista pertence a outro usuário.");
+		}
+
 		listaMensalRepository.deleteById(id);
 	}
 
 	@Transactional
-	public ItemListaTO adicionarItem(UUID listaId, AdicionarItemTO to) {
+	public ItemListaTO adicionarItem(String emailLogado, UUID listaId, AdicionarItemTO to) {
 		ListaMensal lista = listaMensalRepository.findById(listaId).orElseThrow(() -> new ResourceNotFoundException("Lista não encontrada."));
+
+		if (!lista.getUsuario().getEmail().equals(emailLogado)) {
+			throw new BusinessException("Acesso negado. A lista pertence a outro usuário.");
+		}
 
 		if(to.getQuantidade() <= 0) {
 			throw new BusinessException("Quantidade deve ser maior que 0.");
@@ -97,8 +145,12 @@ public class ListaMensalService {
 	}
 
 	@Transactional
-	public ItemListaTO alterarItem(UUID itemId, AlterarItemTO to) {
+	public ItemListaTO alterarItem(String emailLogado, UUID itemId, AlterarItemTO to) {
 		ItemLista item = itemListaReporitory.findById(itemId).orElseThrow(() -> new ResourceNotFoundException("Item nao encontrado"));
+
+		if (!item.getListaMensal().getUsuario().getEmail().equals(emailLogado)) {
+			throw new BusinessException("Acesso negado. O item pertence a outro usuário.");
+		}
 
 		item.setNomeProduto(to.getNomeProduto());
 		item.setQuantidade(to.getQuantidade());
@@ -111,14 +163,24 @@ public class ListaMensalService {
 	}
 
 	@Transactional
-	public void deletarItem(UUID itemId) {
+	public void deletarItem(String emailLogado, UUID itemId) {
+		ItemLista item = itemListaReporitory.findById(itemId).orElseThrow(() -> new ResourceNotFoundException("Item nao encontrado"));
+
+		if (!item.getListaMensal().getUsuario().getEmail().equals(emailLogado)) {
+			throw new BusinessException("Acesso negado. O item pertence a outro usuário.");
+		}
+
 		itemListaReporitory.deleteById(itemId);
 	}
 
 
 	@Transactional
-	public ResumoListaTO getResumoLista(UUID listaId) {
+	public ResumoListaTO getResumoLista(String emailLogado, UUID listaId) {
 		ListaMensal lista = listaMensalRepository.findById(listaId).orElseThrow(() -> new ResourceNotFoundException("Lista nao encontrada"));
+
+		if (!lista.getUsuario().getEmail().equals(emailLogado)) {
+			throw new BusinessException("Acesso negado. A lista pertence a outro usuário.");
+		}
 
 		lista.getItens().stream().map(ItemLista::getValorTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
 		return new ResumoListaTO(lista);

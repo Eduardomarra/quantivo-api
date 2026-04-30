@@ -15,6 +15,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -34,6 +37,12 @@ class ItemListaControllerTest {
 	@Mock
 	private ItemListaService itemListaService;
 
+	@Mock
+	private SecurityContext securityContext;
+
+	@Mock
+	private Authentication authentication;
+
 	@InjectMocks
 	private ItemListaController itemListaController;
 
@@ -42,10 +51,12 @@ class ItemListaControllerTest {
 	private ItemLista item1;
 	private ItemLista item2;
 	private ListaMensal listaMensal;
+	private String emailLogado;
 
 	@BeforeEach
 	void setUp() {
 		listaId = UUID.randomUUID();
+		emailLogado = "usuario@teste.com";
 
 		listaMensal = new ListaMensal();
 		listaMensal.setId(listaId);
@@ -77,10 +88,17 @@ class ItemListaControllerTest {
 		);
 	}
 
+	private void mockSecurityContext() {
+		SecurityContextHolder.setContext(securityContext);
+		when(securityContext.getAuthentication()).thenReturn(authentication);
+		when(authentication.getName()).thenReturn(emailLogado);
+	}
+
 	@Test
 	@DisplayName("Deve retornar lista de itens quando lista existe")
 	void deveRetornarListaDeItensQuandoListaExiste() {
-		when(itemListaService.getItens(listaId)).thenReturn(itens);
+		mockSecurityContext();
+		when(itemListaService.getItens(emailLogado, listaId)).thenReturn(itens);
 
 		ResponseEntity<List<ItemListaTO>> response = itemListaController.getItem(listaId);
 
@@ -91,13 +109,14 @@ class ItemListaControllerTest {
 		assertThat(response.getBody().get(0).getNomeProduto()).isEqualTo("Produto 1");
 		assertThat(response.getBody().get(1).getNomeProduto()).isEqualTo("Produto 2");
 
-		verify(itemListaService, times(1)).getItens(listaId);
+		verify(itemListaService, times(1)).getItens(emailLogado, listaId);
 	}
 
 	@Test
 	@DisplayName("Deve retornar lista vazia quando lista não tem itens")
 	void deveRetornarListaVaziaQuandoListaSemItens() {
-		when(itemListaService.getItens(listaId)).thenReturn(Collections.emptyList());
+		mockSecurityContext();
+		when(itemListaService.getItens(emailLogado, listaId)).thenReturn(Collections.emptyList());
 
 		ResponseEntity<List<ItemListaTO>> response = itemListaController.getItem(listaId);
 
@@ -106,20 +125,21 @@ class ItemListaControllerTest {
 		assertThat(response.getBody()).isNotNull();
 		assertThat(response.getBody()).isEmpty();
 
-		verify(itemListaService, times(1)).getItens(listaId);
+		verify(itemListaService, times(1)).getItens(emailLogado, listaId);
 	}
 
 	@Test
 	@DisplayName("Deve lançar exceção quando lista não existe")
 	void deveLancarExcecaoQuandoListaNaoExiste() {
-		when(itemListaService.getItens(listaId))
+		mockSecurityContext();
+		when(itemListaService.getItens(emailLogado, listaId))
 				.thenThrow(new ResourceNotFoundException("Lista mensal não encontrada."));
 
 		assertThatThrownBy(() -> itemListaController.getItem(listaId))
 				.isInstanceOf(ResourceNotFoundException.class)
 				.hasMessage("Lista mensal não encontrada.");
 
-		verify(itemListaService, times(1)).getItens(listaId);
+		verify(itemListaService, times(1)).getItens(emailLogado, listaId);
 	}
 
 	@Test
@@ -129,13 +149,14 @@ class ItemListaControllerTest {
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessage("ID da lista não pode ser nulo");
 
-		verify(itemListaService, never()).getItens(any());
+		verify(itemListaService, never()).getItens(anyString(), any());
 	}
 
 	@Test
 	@DisplayName("Deve retornar ResponseEntity com status 200 OK")
 	void deveRetornarStatus200Ok() {
-		when(itemListaService.getItens(listaId)).thenReturn(itens);
+		mockSecurityContext();
+		when(itemListaService.getItens(emailLogado, listaId)).thenReturn(itens);
 
 		ResponseEntity<List<ItemListaTO>> response = itemListaController.getItem(listaId);
 
@@ -146,7 +167,8 @@ class ItemListaControllerTest {
 	@Test
 	@DisplayName("Deve retornar itens com dados corretos")
 	void deveRetornarItensComDadosCorretos() {
-		when(itemListaService.getItens(listaId)).thenReturn(itens);
+		mockSecurityContext();
+		when(itemListaService.getItens(emailLogado, listaId)).thenReturn(itens);
 
 		ResponseEntity<List<ItemListaTO>> response = itemListaController.getItem(listaId);
 		List<ItemListaTO> itensRetornados = response.getBody();

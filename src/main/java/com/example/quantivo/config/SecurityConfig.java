@@ -82,8 +82,7 @@ public class SecurityConfig {
 		CorsConfiguration config = new CorsConfiguration();
 
 		config.setAllowedOrigins(Arrays.asList(
-				"http://localhost:4200",
-				"http://dominio-a-ser-criado"
+				"http://localhost:4200"
 		));
 
 		config.setAllowedMethods(Arrays.asList(
@@ -115,4 +114,3 @@ public class SecurityConfig {
 		return configuration.getAuthenticationManager();
 	}
 }
-

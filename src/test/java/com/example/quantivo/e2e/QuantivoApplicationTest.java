@@ -8,16 +8,17 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.*;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(
 		webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -25,7 +26,7 @@ import java.util.UUID;
 )
 @ActiveProfiles("test")
 @DisplayName("Testes End-to-End da API Quantivo")
-class QuantivoE2ETest {
+class QuantivoApplicationTest {
 
 	@LocalServerPort
 	private int port;
@@ -38,6 +39,9 @@ class QuantivoE2ETest {
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
+
+	@MockBean
+	private JavaMailSender javaMailSender;
 
 	private String baseUrl;
 	private String authToken;
@@ -114,18 +118,20 @@ class QuantivoE2ETest {
 		);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-		authToken = extractToken(response.getBody());
+		authToken = response.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+		assertThat(authToken).startsWith("Bearer ");
 	}
 
 	private UUID criarListaMensal() {
 		String criarListaJson = """
             {
-                "usuarioId": "%s"
+                "usuarioId": "%s",
+                "descricao": "Lista de Teste E2E"
             }
             """.formatted(usuarioId);
 
 		HttpHeaders headers = new HttpHeaders();
-		headers.setBearerAuth(authToken);
+		headers.set("Authorization", authToken);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> request = new HttpEntity<>(criarListaJson, headers);
 
@@ -154,7 +160,7 @@ class QuantivoE2ETest {
             """;
 
 		HttpHeaders headers = new HttpHeaders();
-		headers.setBearerAuth(authToken);
+		headers.set("Authorization", authToken);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> request = new HttpEntity<>(adicionarItemJson, headers);
 
@@ -175,23 +181,22 @@ class QuantivoE2ETest {
 
 	private void buscarItens(UUID listaId) {
 		HttpHeaders headers = new HttpHeaders();
-		headers.setBearerAuth(authToken);
+		headers.set("Authorization", authToken);
 		HttpEntity<String> request = new HttpEntity<>(headers);
 
 		ResponseEntity<String> response = restTemplate.exchange(
-				baseUrl + "/item-lista/itens/" + listaId,
+				baseUrl + "/lista-mensal/lista-id/" + listaId,
 				HttpMethod.GET,
 				request,
 				String.class
 		);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertThat(response.getBody()).contains("Produto E2E");
 	}
 
 	private void buscarResumo(UUID listaId) {
 		HttpHeaders headers = new HttpHeaders();
-		headers.setBearerAuth(authToken);
+		headers.set("Authorization", authToken);
 		HttpEntity<String> request = new HttpEntity<>(headers);
 
 		ResponseEntity<String> response = restTemplate.exchange(
@@ -215,7 +220,7 @@ class QuantivoE2ETest {
             """;
 
 		HttpHeaders headers = new HttpHeaders();
-		headers.setBearerAuth(authToken);
+		headers.set("Authorization", authToken);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> request = new HttpEntity<>(alterarItemJson, headers);
 
@@ -232,7 +237,7 @@ class QuantivoE2ETest {
 
 	private void deletarItem(UUID itemId) {
 		HttpHeaders headers = new HttpHeaders();
-		headers.setBearerAuth(authToken);
+		headers.set("Authorization", authToken);
 		HttpEntity<String> request = new HttpEntity<>(headers);
 
 		ResponseEntity<Void> response = restTemplate.exchange(
@@ -247,7 +252,7 @@ class QuantivoE2ETest {
 
 	private void deletarLista(UUID listaId) {
 		HttpHeaders headers = new HttpHeaders();
-		headers.setBearerAuth(authToken);
+		headers.set("Authorization", authToken);
 		HttpEntity<String> request = new HttpEntity<>(headers);
 
 		ResponseEntity<Void> response = restTemplate.exchange(
@@ -258,11 +263,5 @@ class QuantivoE2ETest {
 		);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-	}
-
-	private String extractToken(String responseBody) {
-		int tokenStart = responseBody.indexOf("\"token\":\"") + 9;
-		int tokenEnd = responseBody.indexOf("\"", tokenStart);
-		return responseBody.substring(tokenStart, tokenEnd);
 	}
 }

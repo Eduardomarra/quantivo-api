@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -27,45 +28,48 @@ public class UsuarioController {
 
 	@GetMapping
 	public ResponseEntity<Page<UsuarioTO>> buscarAllUsuarios(Pageable pageable){
-		Page<UsuarioTO> to = usuarioService.buscarAllUsuarios(pageable);
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		Page<UsuarioTO> to = usuarioService.buscarAllUsuarios(emailLogado, pageable);
 		return ResponseEntity.ok(to);
 	}
 
 	@GetMapping(value = "/email/{email}")
-	public UsuarioTO buscarPorEmail(@PathVariable String email){
-		return usuarioService.buscarPorEmail(email);
+	public ResponseEntity<UsuarioTO> buscarPorEmail(@PathVariable String email){
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		return ResponseEntity.ok(usuarioService.buscarPorEmail(emailLogado, email));
 	}
 
 	@GetMapping(value = "/id/{id}")
-	public UsuarioTO buscarPorId(@PathVariable UUID id){
-		return usuarioService.buscarPorId(id);
+	public ResponseEntity<UsuarioTO> buscarPorId(@PathVariable UUID id){
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		return ResponseEntity.ok(usuarioService.buscarPorId(emailLogado, id));
 	}
 
 	@PutMapping(value = "/alterar-senha/{email}")
-	public void alterarSenha(@PathVariable String email, @Valid @RequestBody AlterarSenhaTO senha){
-		usuarioService.alterarSenha(email, senha.getSenhaAtual(), senha.getSenhaNova());
+	public ResponseEntity<Void> alterarSenha(@PathVariable String email, @Valid @RequestBody AlterarSenhaTO senha){
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		usuarioService.alterarSenha(emailLogado, email, senha.getSenhaAtual(), senha.getSenhaNova());
+		return ResponseEntity.ok().build();
 	}
 
 	@PutMapping(value = "/excluir/{id}")
-	public void excluirUsuario(@PathVariable UUID id){
-		usuarioService.excluirUsuario(id);
+	public ResponseEntity<Void> excluirUsuario(@PathVariable UUID id){
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		usuarioService.excluirUsuario(emailLogado, id);
+		return ResponseEntity.ok().build();
 	}
 
 	@PutMapping(value = "/ativar/{id}")
-	public void ativarUsuario(@PathVariable UUID id){
-		try {
-			usuarioService.ativarUsuario(id);
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
+	public ResponseEntity<Void> ativarUsuario(@PathVariable UUID id){
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		usuarioService.ativarUsuario(emailLogado, id);
+		return ResponseEntity.ok().build();
 	}
 
 	@PutMapping(value = "/desativar/{id}")
-	public void desativarUsuario(@PathVariable UUID id){
-		try {
-			usuarioService.desativarUsuario(id);
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
+	public ResponseEntity<Void> desativarUsuario(@PathVariable UUID id){
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		usuarioService.desativarUsuario(emailLogado, id);
+		return ResponseEntity.ok().build();
 	}
 }

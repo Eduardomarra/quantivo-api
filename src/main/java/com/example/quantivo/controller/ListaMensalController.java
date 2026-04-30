@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,43 +34,57 @@ public class ListaMensalController {
 
 	@PostMapping(value = "/criar")
 	public ResponseEntity<ListaMensalTO> criar(@RequestBody CriarListaMensalTO to) {
-		return ResponseEntity.ok(listaMensalService.criarListaMensal(to));
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		return ResponseEntity.ok(listaMensalService.criarListaMensal(emailLogado, to));
 	}
 
 	@GetMapping(value = "/lista-id/{id}")
 	public ResponseEntity<ListaMensalTO> getListaPorId(@PathVariable UUID id) {
-		return ResponseEntity.ok(listaMensalService.getPorId(id));
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		return ResponseEntity.ok(listaMensalService.getPorId(emailLogado, id));
 	}
 
 	@GetMapping(value = "/usuario-id/{id}")
 	public ResponseEntity<List<ListaMensalTO>> getListaPorUsuarioId(@PathVariable UUID id) {
-		return ResponseEntity.ok(listaMensalService.getPorUsuarioId(id));
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		return ResponseEntity.ok(listaMensalService.getPorUsuarioId(emailLogado, id));
+	}
+
+	@PutMapping(value = "/editar-lista/{id}")
+	public ResponseEntity<ListaMensalTO> editarLista(@PathVariable UUID id, @Valid @RequestBody String descricao ) {
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		return ResponseEntity.ok(listaMensalService.editarDescricaoLista(emailLogado, descricao, id));
 	}
 
 	@DeleteMapping(value = "/deletar/{id}")
 	public ResponseEntity<Void> deletar(@PathVariable UUID id) {
-		listaMensalService.deletarLista(id);
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		listaMensalService.deletarLista(emailLogado, id);
 		return ResponseEntity.noContent().build();
 	}
 
 	@PostMapping(value = "/{listaId}/itens")
 	public ResponseEntity<ItemListaTO> adicionarItem(@PathVariable UUID listaId, @Valid @RequestBody AdicionarItemTO to) {
-		return ResponseEntity.ok(listaMensalService.adicionarItem(listaId, to));
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		return ResponseEntity.ok(listaMensalService.adicionarItem(emailLogado, listaId, to));
 	}
 
 	@PutMapping(value = "/itens/{itemId}")
 	public ResponseEntity<ItemListaTO> alterarItem(@PathVariable UUID itemId, @Valid @RequestBody AlterarItemTO to) {
-		return ResponseEntity.ok(listaMensalService.alterarItem(itemId, to));
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		return ResponseEntity.ok(listaMensalService.alterarItem(emailLogado, itemId, to));
 	}
 
 	@DeleteMapping(value = "/deletar-item/{id}")
 	public ResponseEntity<Void> deletarItem(@PathVariable UUID id) {
-		listaMensalService.deletarItem(id);
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		listaMensalService.deletarItem(emailLogado, id);
 		return ResponseEntity.noContent().build();
 	}
 
 	@GetMapping(value = "/resumo/{listaId}")
 	public ResponseEntity<ResumoListaTO> getResumoLista(@PathVariable UUID listaId) {
-		return ResponseEntity.ok(listaMensalService.getResumoLista(listaId));
+		String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+		return ResponseEntity.ok(listaMensalService.getResumoLista(emailLogado, listaId));
 	}
 }

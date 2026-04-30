@@ -27,6 +27,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/auth")
@@ -120,13 +121,15 @@ public class AuthController {
 
 	@PostMapping("/forgot-password")
 	public ResponseEntity<Void> forgotPassword(@RequestBody ForgotPasswordRequest request) {
-
-		Usuario user = usuarioRepository.findByEmail(request.getEmail())
-				.orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
-
-		PasswordResetToken token = tokenService.createToken(user);
-		emailService.sendPasswordResetEmail(user.getEmail(), token.getToken());
-
+		Optional<Usuario> userOpt = usuarioRepository.findByEmail(request.getEmail());
+		
+		if (userOpt.isPresent()) {
+			Usuario user = userOpt.get();
+			PasswordResetToken token = tokenService.createToken(user);
+			emailService.sendPasswordResetEmail(user.getEmail(), token.getToken());
+		}
+		
+		// Sempre retorna OK para evitar enumeração de usuários
 		return ResponseEntity.ok().build();
 	}
 
